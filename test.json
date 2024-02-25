@@ -1,0 +1,8 @@
+{
+	"100 Beefcake Rd": {
+		"refs": ["ygl.is/12345/678910", "ygl.is/12/34"],
+	    	"beds": 4,
+	    	"baths": 2,
+	    	"price": 4400
+	}
+}
