@@ -1,8 +1,32 @@
 {
-	"100 Beefcake Rd": {
-		"refs": ["ygl.is/12345/678910", "ygl.is/12/34"],
-	    	"beds": 4,
-	    	"baths": 2,
-	    	"price": 4400
-	}
+  "10 Chartreuse Rd": {
+    "refs": ["ygl.is/12345/678910", "ygl.is/12/34"],
+    "beds": 4,
+    "baths": 2,
+    "price": 4400
+  },
+  "20 Salmon St.": {
+    "refs": ["ygl.is/12345/678910", "ygl.is/12/34"],
+    "beds": 5,
+    "baths": 2,
+    "price": 5100
+  },
+  "30 Amaranth Pkwy": {
+    "refs": ["ygl.is/12345/678910", "ygl.is/12/34"],
+    "beds": 4,
+    "baths": 2,
+    "price": 3900
+  },
+  "40 Burlywood Pl": {
+    "refs": ["ygl.is/12345/678910", "ygl.is/12/34"],
+    "beds": 4,
+    "baths": 2,
+    "price": 4280
+  },
+  "50 Zaffre Ave": {
+    "refs": ["ygl.is/12345/678910", "ygl.is/12/34"],
+    "beds": 5,
+    "baths": 2,
+    "price": 5100
+  }
 }
