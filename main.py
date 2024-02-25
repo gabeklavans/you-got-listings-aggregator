@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
 
 import json
+import argparse
 from typing import Dict
+from dotenv import load_dotenv
 import requests
 from bs4 import BeautifulSoup
+import bot
+
+load_dotenv()
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--notify', action='store_true', help='Enable notifications for new listings')
+args = parser.parse_args()
 
 def ygl_listings(url: str):
     '''Generator function for getting all paginated listings from a ygl search query'''
@@ -46,7 +55,8 @@ def fill_properties(listings: Dict, ygl_url_base: str):
 
         if listing_addr not in listings:
             # initialize a new entry for this listing
-            print(f'New listing {listing_addr} found!')
+            if args.notify:
+                bot.notify(listing_url)
 
             listings[listing_addr] = {
                 'refs': []
