@@ -24,27 +24,50 @@ def ygl_listings(url: str):
         for listing in listings:
             yield listing
 
-
-def fill_properties(props: Dict, ygl_url_base: str):
+def fill_properties(listings: Dict, ygl_url_base: str):
     '''
     Fill a persistent props dict with listings and their data
 
     json format example
     {
-        '100 Beefcake Rd': {
-            'refs': ['ygl.is/12345/678910', 'ygl.is/12/34']
+        "100 Beefcake Rd": {
+            "refs": ["ygl.is/12345/678910", "ygl.is/12/34"],
+            "price": 4400,
+            "beds": 4,
+            "baths": 2,
+            "date": "09/01/2024",
         }
     }
     '''
     for listing in ygl_listings(f'{ygl_url_base}?beds_from=4&beds_to=5&rent_to=5200&date_from=09%2F01%2F2024'):
-        prop_element = listing.find('a', class_='item_title')
-        prop_addr = prop_element.get_text()
-        prop_url = prop_element['href']
-        if prop_addr not in props:
-            props[prop_addr] = { 'refs': [] }
-            print(f'New listing {prop_addr} found!')
-        if prop_url not in props[prop_addr]['refs']:
-            props[prop_addr]['refs'].append(prop_url)
+        listing_element = listing.find('a', class_='item_title')
+        listing_addr = listing_element.get_text()
+        listing_url = listing_element['href']
+
+        if listing_addr not in listings:
+            # initialize a new entry for this listing
+            print(f'New listing {listing_addr} found!')
+
+            listings[listing_addr] = {
+                'refs': []
+            }
+
+            listing_props_elements = listing.find_all('div', class_='column')
+            listing_props = list(map(lambda tag: tag.text.strip(), listing_props_elements))
+            # the listing properties are well-ordered, so we parse them directly
+            listing_price = int(''.join(filter(lambda char: char.isdigit(), listing_props[0])))
+            listing_beds = float(listing_props[1].split(' ')[0])
+            listing_baths = float(listing_props[2].split(' ')[0])
+            listing_date = listing_props[3].split(' ')[1]
+
+            listings[listing_addr]['price'] = listing_price
+            listings[listing_addr]['beds'] = listing_beds
+            listings[listing_addr]['baths'] = listing_baths
+            listings[listing_addr]['date'] = listing_date
+
+        # always check if this is a new copy of the listing
+        if listing_url not in listings[listing_addr]['refs']:
+            listings[listing_addr]['refs'].append(listing_url)
 
 
 if __name__ == "__main__":
