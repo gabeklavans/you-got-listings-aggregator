@@ -48,14 +48,17 @@ def fill_properties(props: Dict, ygl_url_base: str):
 
 
 if __name__ == "__main__":
+    with open('sites.json', 'r', encoding='utf-8') as sites_fp:
+        sites = json.load(sites_fp)
+
     try:
         with open('listings.json', 'r', encoding='utf-8') as listings_fp:
             total_props = json.load(listings_fp)
     except IOError as e:
         total_props = {}
 
-    fill_properties(total_props, 'https://ygl.is/99333')
-    fill_properties(total_props, 'https://ygl.is/99334')
+    for site in sites:
+        fill_properties(total_props, site)
 
     with open('listings.json', 'w', encoding='utf-8') as listings_file:
         json.dump(total_props, listings_file)
