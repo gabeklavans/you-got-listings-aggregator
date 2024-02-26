@@ -81,7 +81,7 @@ def fill_properties(listings: Dict, ygl_url_base: str):
 
 
 if __name__ == "__main__":
-    with open('sites.json', 'r', encoding='utf-8') as sites_fp:
+    with open('../sites.json', 'r', encoding='utf-8') as sites_fp:
         sites = json.load(sites_fp)
 
     try:
@@ -90,7 +90,7 @@ if __name__ == "__main__":
     except IOError as e:
         total_props = {}
 
-    for site in sites:
+    for site in sites.keys():
         fill_properties(total_props, site)
 
     with open('listings.json', 'w', encoding='utf-8') as listings_file:
