@@ -1,0 +1,35 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: inherit;
+}
+
+#listings-area {
+  padding: 2%;
+  background-color: rgb(216, 216, 246);
+}
+
+#main-header {
+  /* text-align: center; */
+}
+
+#listings {
+  display: flex;
+  flex-direction: column;
+}
+
+.price {
+}
+
+.address {
+  text-decoration: underline;
+}
+
+.listing {
+  margin-top: 1%;
+  margin-bottom: 1%;
+}
+
+input {
+  padding: 2px;
+}

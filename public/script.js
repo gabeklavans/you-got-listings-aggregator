@@ -11,9 +11,10 @@ const sites = {
   "https://ygl.is/keith-rose": "Keith",
   "https://ygl.is/92567": "Michael",
   "https://ygl.is/Alexis-Velez-1": "Alexis",
+  "https://ygl.is/alexandra-mishenina": "Alexandra",
 };
 
-fetch("../test.json")
+fetch("../public/test.json")
   .then((response) => response.json())
   .then((json) => {
     propertiesObject = json;
@@ -37,14 +38,17 @@ fetch("../test.json")
 
       //
       const p = $(".properties").append(
-        `<p> $${listingInfo.price} \u00A0\u00A0\u00A0 ${listingInfo.beds}Bd / ${listingInfo.baths}bth   \u00A0\u00A0\u00A0 ${property[0]}:   \u00A0\u00A0\u00A0 ${nameTags} </p>`
+        `<p id="listing${i}" class="listing"> <span class="price">$${listingInfo.price} </span> \u00A0\u00A0\u00A0 <span class="beds-baths"> ${listingInfo.beds}Bd / ${listingInfo.baths}bth </span>  
+        \u00A0\u00A0\u00A0 <span class="address">${property[0]}:</span> \u00A0\u00A0\u00A0 <span class="name-tags">${nameTags} </span> </p>
+        
+        <input type="text id="listing-notes" name="notes">`
       );
       i++;
     });
   });
 
 // $().add(`<p> ${property[0]} </p>`);
-// console.log($());
+// console.log($());`
 
 // bed / bath / price    LISTING    name name name
 
