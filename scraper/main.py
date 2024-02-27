@@ -46,6 +46,9 @@ def fill_properties(old_listings: Dict, new_listings: Dict, ygl_url_base: str):
             "beds": 4,
             "baths": 2,
             "date": "09/01/2024",
+            "notes": "Evil, diabolical, lemon-scented",
+            "isFavorite": True,
+            "isDismissed": False,
         }
     }
     '''
@@ -55,26 +58,35 @@ def fill_properties(old_listings: Dict, new_listings: Dict, ygl_url_base: str):
         listing_url = listing_element['href']
 
         if listing_addr not in new_listings:
-            if listing_addr not in old_listings and args.notify:
-                bot.notify(listing_url)
+            if listing_addr in old_listings:
+                new_listings[listing_addr] = old_listings[listing_addr]
+            else:
+                if args.notify:
+                    bot.notify(listing_url)
 
-            # initialize a new entry for this listing
-            new_listings[listing_addr] = {
-                'refs': []
-            }
+                # initialize a new entry for this listing
+                new_listing = {
+                    'refs': [],
+                    'price': -1,
+                }
 
-            listing_props_elements = listing.find_all('div', class_='column')
-            listing_props = list(map(lambda tag: tag.text.strip(), listing_props_elements))
-            # the listing properties are well-ordered, so we parse them directly
-            listing_price = int(''.join(filter(lambda char: char.isdigit(), listing_props[0])))
-            listing_beds = float(listing_props[1].split(' ')[0])
-            listing_baths = float(listing_props[2].split(' ')[0])
-            listing_date = listing_props[3].split(' ')[1]
+                listing_props_elements = listing.find_all('div', class_='column')
+                listing_props = list(map(lambda tag: tag.text.strip(), listing_props_elements))
+                # the listing properties are well-ordered, so we parse them directly
+                listing_price = int(''.join(filter(lambda char: char.isdigit(), listing_props[0])))
+                listing_beds = float(listing_props[1].split(' ')[0])
+                listing_baths = float(listing_props[2].split(' ')[0])
+                listing_date = listing_props[3].split(' ')[1]
 
-            new_listings[listing_addr]['price'] = listing_price
-            new_listings[listing_addr]['beds'] = listing_beds
-            new_listings[listing_addr]['baths'] = listing_baths
-            new_listings[listing_addr]['date'] = listing_date
+                new_listing['price'] = listing_price
+                new_listing['beds'] = listing_beds
+                new_listing['baths'] = listing_baths
+                new_listing['date'] = listing_date
+                new_listing['notes'] = ''
+                new_listing['isFavorite'] = False
+                new_listing['isDismissed'] = False
+
+                new_listings[listing_addr] = new_listing
 
         # always check if this is a new copy of the listing
         if listing_url not in new_listings[listing_addr]['refs']:
@@ -85,7 +97,10 @@ if __name__ == "__main__":
     with open('../data/sites.json', 'r', encoding='utf-8') as sites_fp:
         sites = json.load(sites_fp)
 
-    shutil.copyfile('../data/listings.json', '../data/listings.bak.json')
+    try:
+        shutil.copyfile('../data/listings.json', '../data/listings.bak.json')
+    except FileNotFoundError as e:
+        pass
 
     try:
         with open('../data/listings.json', 'r', encoding='utf-8') as listings_fp:
