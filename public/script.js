@@ -14,7 +14,7 @@ const sites = {
   "https://ygl.is/alexandra-mishenina": "Alexandra",
 };
 
-fetch("../public/test.json")
+fetch("https://ygl.dabe.tech/listings")
   .then((response) => response.json())
   .then((json) => {
     propertiesObject = json;
