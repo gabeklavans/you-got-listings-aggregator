@@ -39,10 +39,22 @@ func getListings(c *gin.Context) {
 		log.Print(err)
 	}
 
-	m := make(map[string]ListingProps)
-	json.Unmarshal(data, &m)
+	listingsJson := make(map[string]ListingProps)
+	json.Unmarshal(data, &listingsJson)
 
-	c.IndentedJSON(http.StatusOK, m)
+	c.IndentedJSON(http.StatusOK, listingsJson)
+}
+
+func getSites(c *gin.Context) {
+	data, err := os.ReadFile("../data/sites.json")
+	if err != nil {
+		log.Print(err)
+	}
+
+	sitesJson := make(map[string]string)
+	json.Unmarshal(data, &sitesJson)
+
+	c.IndentedJSON(http.StatusOK, sitesJson)
 }
 
 func ping(c *gin.Context) {
@@ -61,6 +73,7 @@ func main() {
 
 	router.GET("/ping", basicAuth, ping)
 	router.GET("/listings", getListings)
+	router.GET("/sites", getSites)
 
 	router.Run("192.168.88.22:8083")
 }
