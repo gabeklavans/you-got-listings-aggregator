@@ -1,7 +1,7 @@
 let propertiesObject = {};
 let propertiesDiv = document.getElementsByClassName("properties");
 
-fetch("../data/sites.json")
+fetch("https://ygl.dabe.tech/sites")
   .then((response) => response.json())
   .then((sites) => {
     fetch("https://ygl.dabe.tech/listings")
