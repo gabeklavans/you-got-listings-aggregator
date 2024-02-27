@@ -2,6 +2,7 @@
 
 import json
 import argparse
+import shutil
 from typing import Dict
 from dotenv import load_dotenv
 import requests
@@ -33,7 +34,7 @@ def ygl_listings(url: str):
         for listing in listings:
             yield listing
 
-def fill_properties(listings: Dict, ygl_url_base: str):
+def fill_properties(old_listings: Dict, new_listings: Dict, ygl_url_base: str):
     '''
     Fill a persistent props dict with listings and their data
 
@@ -53,12 +54,12 @@ def fill_properties(listings: Dict, ygl_url_base: str):
         listing_addr = listing_element.get_text()
         listing_url = listing_element['href']
 
-        if listing_addr not in listings:
-            # initialize a new entry for this listing
-            if args.notify:
+        if listing_addr not in new_listings:
+            if listing_addr not in old_listings and args.notify:
                 bot.notify(listing_url)
 
-            listings[listing_addr] = {
+            # initialize a new entry for this listing
+            new_listings[listing_addr] = {
                 'refs': []
             }
 
@@ -70,28 +71,31 @@ def fill_properties(listings: Dict, ygl_url_base: str):
             listing_baths = float(listing_props[2].split(' ')[0])
             listing_date = listing_props[3].split(' ')[1]
 
-            listings[listing_addr]['price'] = listing_price
-            listings[listing_addr]['beds'] = listing_beds
-            listings[listing_addr]['baths'] = listing_baths
-            listings[listing_addr]['date'] = listing_date
+            new_listings[listing_addr]['price'] = listing_price
+            new_listings[listing_addr]['beds'] = listing_beds
+            new_listings[listing_addr]['baths'] = listing_baths
+            new_listings[listing_addr]['date'] = listing_date
 
         # always check if this is a new copy of the listing
-        if listing_url not in listings[listing_addr]['refs']:
-            listings[listing_addr]['refs'].append(listing_url)
+        if listing_url not in new_listings[listing_addr]['refs']:
+            new_listings[listing_addr]['refs'].append(listing_url)
 
 
 if __name__ == "__main__":
-    with open('../sites.json', 'r', encoding='utf-8') as sites_fp:
+    with open('../data/sites.json', 'r', encoding='utf-8') as sites_fp:
         sites = json.load(sites_fp)
 
+    shutil.copyfile('../data/listings.json', '../data/listings.bak.json')
+
     try:
-        with open('listings.json', 'r', encoding='utf-8') as listings_fp:
-            total_props = json.load(listings_fp)
+        with open('../data/listings.json', 'r', encoding='utf-8') as listings_fp:
+            old_listings = json.load(listings_fp)
     except IOError as e:
-        total_props = {}
+        old_listings = {}
 
+    new_listings = {}
     for site in sites.keys():
-        fill_properties(total_props, site)
+        fill_properties(old_listings, new_listings, site)
 
-    with open('listings.json', 'w', encoding='utf-8') as listings_file:
-        json.dump(total_props, listings_file)
+    with open('../data/listings.json', 'w', encoding='utf-8') as listings_file:
+        json.dump(new_listings, listings_file)
