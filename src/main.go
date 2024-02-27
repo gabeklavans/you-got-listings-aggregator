@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
     "github.com/joho/godotenv"
+    "github.com/gin-contrib/cors"
 )
 
 type ListingProps struct {
@@ -55,8 +56,11 @@ func main() {
     }
 
     router := gin.Default()
-    router.GET("/ping", basicAuth, ping)
-    router.GET("/listings", getListings)
 
-    router.Run("0.0.0.0:8080")
+    router.Use(cors.Default())
+
+    router.GET("/ping", basicAuth, ping)
+    router.GET("/listings",  getListings)
+
+    router.Run("192.168.88.22:8083")
 }
