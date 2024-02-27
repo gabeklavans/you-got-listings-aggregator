@@ -14,8 +14,8 @@ import (
 type ListingProps struct {
     Refs []string `json:"refs"`
     Price int `json:"price"`
-    Beds int `json:"beds"`
-    Baths int `json:"baths"`
+    Beds float32 `json:"beds"`
+    Baths float32 `json:"baths"`
     Date string `json:"date"`
     Notes string `json:"notes"`
     IsFavorite bool `json:"isFavorite"`
