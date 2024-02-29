@@ -101,16 +101,16 @@ def fill_properties(old_listings: Dict, new_listings: Dict, ygl_url_base: str):
 
 
 if __name__ == "__main__":
-    with open('../data/sites.json', 'r', encoding='utf-8') as sites_fp:
+    with open('../public/data/sites.json', 'r', encoding='utf-8') as sites_fp:
         sites = json.load(sites_fp)
 
     try:
-        shutil.copyfile('../data/listings.json', '../data/listings.bak.json')
+        shutil.copyfile('../public/data/listings.json', '../public/data/listings.bak.json')
     except FileNotFoundError as e:
         pass
 
     try:
-        with open('../data/listings.json', 'r', encoding='utf-8') as listings_fp:
+        with open('../public/data/listings.json', 'r', encoding='utf-8') as listings_fp:
             old_listings = json.load(listings_fp)
     except IOError as e:
         old_listings = {}
@@ -119,5 +119,5 @@ if __name__ == "__main__":
     for site in sites.keys():
         fill_properties(old_listings, new_listings, site)
 
-    with open('../data/listings.json', 'w', encoding='utf-8') as listings_file:
+    with open('../public/data/listings.json', 'w', encoding='utf-8') as listings_file:
         json.dump(new_listings, listings_file)
