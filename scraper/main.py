@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
-import json
 import argparse
+import json
 import shutil
 from typing import Dict
-from dotenv import load_dotenv
+
 import requests
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
+
 import bot
 
 load_dotenv()
