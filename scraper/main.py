@@ -3,6 +3,7 @@
 import argparse
 import json
 import shutil
+import time
 from typing import Dict
 
 import requests
@@ -51,9 +52,12 @@ def fill_properties(old_listings: Dict, new_listings: Dict, ygl_url_base: str):
             "notes": "Evil, diabolical, lemon-scented",
             "isFavorite": True,
             "isDismissed": False,
+            "timestamp": 888888888,
         }
     }
     '''
+    timestamp = time.time_ns()
+
     for listing in ygl_listings(f'{ygl_url_base}?beds_from=4&beds_to=5&rent_to=5200&date_from=09%2F01%2F2024'):
         listing_element = listing.find('a', class_='item_title')
         listing_addr = listing_element.get_text()
@@ -87,6 +91,7 @@ def fill_properties(old_listings: Dict, new_listings: Dict, ygl_url_base: str):
                 new_listing['notes'] = ''
                 new_listing['isFavorite'] = False
                 new_listing['isDismissed'] = False
+                new_listing['timestamp'] = timestamp
 
                 new_listings[listing_addr] = new_listing
 
