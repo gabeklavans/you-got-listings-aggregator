@@ -27,7 +27,7 @@ fetch("./data/sites.json")
 
           //
           const p = $(".properties").append(
-            `<p id="listing${i}" class="listing"> <span class="price">$${listingInfo.price} </span> \u00A0\u00A0\u00A0 <span class="beds-baths"> ${listingInfo.beds}Bd / ${listingInfo.baths}bth </span>  
+            `<p id="listing${i}" class="listing"> <span class="timestamp">(${listingInfo.timestamp})\u00A0 - \u00A0</span> <span class="price">$${listingInfo.price} </span> \u00A0\u00A0 <span class="beds-baths"> ${listingInfo.beds}Bd / ${listingInfo.baths}bth </span>  
             \u00A0\u00A0\u00A0 <span class="address">${property[0]}:</span> \u00A0\u00A0\u00A0 <span class="name-tags">${nameTags} </span> </p>
             
             <input type="text id="listing-notes" name="notes">`
