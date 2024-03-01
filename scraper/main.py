@@ -64,12 +64,23 @@ def fill_properties(old_listings: Dict, new_listings: Dict, ygl_url_base: str):
         listing_addr = listing_element.get_text()
         listing_url = listing_element['href']
 
-        if listing_addr not in new_listings:
-            if listing_addr in old_listings:
-                new_listings[listing_addr] = old_listings[listing_addr]
-            else:
-                if args.notify:
-                    bot.notify(listing_url)
+        listing_props_elements = listing.find_all('div', class_='column')
+        listing_props = list(map(lambda tag: tag.text.strip(), listing_props_elements))
+                    
+        # the listing properties are well-ordered, so we parse them directly
+        listing_price = int(''.join(filter(lambda char: char.isdigit(), listing_props[0])))
+        listing_beds = float(listing_props[1].split(' ')[0])
+        listing_baths = float(listing_props[2].split(' ')[0])
+        listing_date = listing_props[3].split(' ')[1]
+
+        # Filter out 1 Baths.. and 4 Beds over $4,600:
+        if listing_baths >= 1.5 and listing_price/listing_beds <= 1150:
+            if listing_addr not in new_listings:
+                if listing_addr in old_listings:
+                    new_listings[listing_addr] = old_listings[listing_addr]
+                else:
+                    if args.notify:
+                        bot.notify(listing_url)
 
                 # initialize a new entry for this listing
                 new_listing = {
@@ -77,13 +88,7 @@ def fill_properties(old_listings: Dict, new_listings: Dict, ygl_url_base: str):
                     'price': -1,
                 }
 
-                listing_props_elements = listing.find_all('div', class_='column')
-                listing_props = list(map(lambda tag: tag.text.strip(), listing_props_elements))
-                # the listing properties are well-ordered, so we parse them directly
-                listing_price = int(''.join(filter(lambda char: char.isdigit(), listing_props[0])))
-                listing_beds = float(listing_props[1].split(' ')[0])
-                listing_baths = float(listing_props[2].split(' ')[0])
-                listing_date = listing_props[3].split(' ')[1]
+                # I moved the listing properties upward from here
 
                 new_listing['price'] = listing_price
                 new_listing['beds'] = listing_beds
@@ -96,9 +101,9 @@ def fill_properties(old_listings: Dict, new_listings: Dict, ygl_url_base: str):
 
                 new_listings[listing_addr] = new_listing
 
-        # always check if this is a new copy of the listing
-        if listing_url not in new_listings[listing_addr]['refs']:
-            new_listings[listing_addr]['refs'].append(listing_url)
+            # always check if this is a new copy of the listing
+            if listing_url not in new_listings[listing_addr]['refs']:
+                new_listings[listing_addr]['refs'].append(listing_url)
 
 
 if __name__ == "__main__":

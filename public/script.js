@@ -35,11 +35,6 @@ fetch("./data/sites.json")
           i++;
         });
       });
-  })
-
-// $().add(`<p> ${property[0]} </p>`);
-// console.log($());`
-
-// bed / bath / price    LISTING    name name name
+  });
 
 // THIS IS A SPACE IN A TEMPLATE LITERAL "  \u00A0  "
