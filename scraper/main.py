@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
-import json
 import argparse
+import json
 import shutil
+import time
 from typing import Dict
-from dotenv import load_dotenv
+
 import requests
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
+
 import bot
 
 load_dotenv()
@@ -49,9 +52,13 @@ def fill_properties(old_listings: Dict, new_listings: Dict, ygl_url_base: str):
             "notes": "Evil, diabolical, lemon-scented",
             "isFavorite": True,
             "isDismissed": False,
+            "timestamp": 888888888,
         }
     }
     '''
+
+    timestamp = time.time_ns()
+    
     for listing in ygl_listings(f'{ygl_url_base}?beds_from=4&beds_to=5&rent_to=5200&date_from=08%2F02%2F2024'):
         listing_element = listing.find('a', class_='item_title')
         listing_addr = listing_element.get_text()
@@ -85,6 +92,7 @@ def fill_properties(old_listings: Dict, new_listings: Dict, ygl_url_base: str):
                 new_listing['notes'] = ''
                 new_listing['isFavorite'] = False
                 new_listing['isDismissed'] = False
+                new_listing['timestamp'] = timestamp
 
                 new_listings[listing_addr] = new_listing
 
@@ -94,16 +102,16 @@ def fill_properties(old_listings: Dict, new_listings: Dict, ygl_url_base: str):
 
 
 if __name__ == "__main__":
-    with open('../data/sites.json', 'r', encoding='utf-8') as sites_fp:
+    with open('../public/data/sites.json', 'r', encoding='utf-8') as sites_fp:
         sites = json.load(sites_fp)
 
     try:
-        shutil.copyfile('../data/listings.json', '../data/listings.bak.json')
+        shutil.copyfile('../public/data/listings.json', '../public/data/listings.bak.json')
     except FileNotFoundError as e:
         pass
 
     try:
-        with open('../data/listings.json', 'r', encoding='utf-8') as listings_fp:
+        with open('../public/data/listings.json', 'r', encoding='utf-8') as listings_fp:
             old_listings = json.load(listings_fp)
     except IOError as e:
         old_listings = {}
@@ -112,5 +120,5 @@ if __name__ == "__main__":
     for site in sites.keys():
         fill_properties(old_listings, new_listings, site)
 
-    with open('../data/listings.json', 'w', encoding='utf-8') as listings_file:
+    with open('../public/data/listings.json', 'w', encoding='utf-8') as listings_file:
         json.dump(new_listings, listings_file)

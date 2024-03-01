@@ -1,13 +1,12 @@
 let propertiesObject = {};
 let propertiesDiv = document.getElementsByClassName("properties");
 
-fetch("https://ygl.dabe.tech/sites")
+fetch("./data/sites.json")
   .then((response) => response.json())
   .then((sites) => {
-    fetch("https://ygl.dabe.tech/listings")
+    fetch("./data/listings.json")
       .then((response) => response.json())
-      .then((json) => {
-        propertiesObject = json;
+      .then((propertiesObject) => {
         // console.log(propertiesObject);
         let i = 0;
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -74,6 +75,9 @@ func main() {
 	router.GET("/ping", basicAuth, ping)
 	router.GET("/listings", getListings)
 	router.GET("/sites", getSites)
+	router.Static("/static", "../public/")
 
-	router.Run("192.168.88.22:8083")
+	domain := os.Getenv("DOMAIN")
+	ip := os.Getenv("IP")
+	router.Run(fmt.Sprintf("%s:%s", domain, ip))
 }
