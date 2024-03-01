@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -34,34 +33,6 @@ func basicAuth(c *gin.Context) {
 	}
 }
 
-func getListings(c *gin.Context) {
-	data, err := os.ReadFile("../data/listings.json")
-	if err != nil {
-		log.Print(err)
-	}
-
-	listingsJson := make(map[string]ListingProps)
-	json.Unmarshal(data, &listingsJson)
-
-	c.IndentedJSON(http.StatusOK, listingsJson)
-}
-
-func getSites(c *gin.Context) {
-	data, err := os.ReadFile("../data/sites.json")
-	if err != nil {
-		log.Print(err)
-	}
-
-	sitesJson := make(map[string]string)
-	json.Unmarshal(data, &sitesJson)
-
-	c.IndentedJSON(http.StatusOK, sitesJson)
-}
-
-func ping(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"pong": true})
-}
-
 func main() {
 	err := godotenv.Load("../.env")
 	if err != nil {
@@ -72,9 +43,6 @@ func main() {
 
 	router.Use(cors.Default())
 
-	router.GET("/ping", basicAuth, ping)
-	router.GET("/listings", getListings)
-	router.GET("/sites", getSites)
 	router.Static("/static", "../public/")
 
 	domain := os.Getenv("DOMAIN")
