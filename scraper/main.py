@@ -4,6 +4,7 @@ import argparse
 import json
 import shutil
 import time
+import datetime
 from typing import Dict
 
 import requests
@@ -57,7 +58,13 @@ def fill_properties(old_listings: Dict, new_listings: Dict, ygl_url_base: str):
     }
     '''
 
+    # Make a formatted timestamp attribute 
     timestamp = time.time_ns()
+    current_datetime = datetime.datetime.fromtimestamp(timestamp/1e9)
+    formatted_date = current_datetime.strftime('%b. %d')
+    suffix = "th" if 11 <= current_datetime.day <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(current_datetime.day % 10, "th")
+    formatted_date = formatted_date.replace("{:02d}".format(current_datetime.day), str(current_datetime.day) + suffix)
+
     
     for listing in ygl_listings(f'{ygl_url_base}?beds_from=4&beds_to=5&rent_to=5200&date_from=08%2F02%2F2024'):
         listing_element = listing.find('a', class_='item_title')
@@ -97,7 +104,7 @@ def fill_properties(old_listings: Dict, new_listings: Dict, ygl_url_base: str):
                 new_listing['notes'] = ''
                 new_listing['isFavorite'] = False
                 new_listing['isDismissed'] = False
-                new_listing['timestamp'] = timestamp
+                new_listing['timestamp'] = formatted_date
 
                 new_listings[listing_addr] = new_listing
 
