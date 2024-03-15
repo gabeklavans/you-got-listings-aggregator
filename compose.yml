@@ -1,9 +1,9 @@
 services:
   ygl-server:
-    image: golang:alpine
+    build: .
     ports:
       - 8083:8083
-    command: go run .
-    working_dir: /app
-    volumes:
-      - ./:/app
+    develop:
+      watch:
+        - action: rebuild
+          path: ./ygl-server.go
