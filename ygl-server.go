@@ -3,13 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
 type ListingProps struct {
@@ -71,19 +69,22 @@ func updateFavorite(c *gin.Context) {
 }
 
 func main() {
-	err := godotenv.Load("../.env")
-	if err != nil {
-		log.Fatalf("Error loading .env: %s", err)
-	}
-
 	router := gin.Default()
 
 	router.Use(cors.Default())
 
-	router.Static("/static", "../public/")
+	router.Static("/static", "./public/")
 	router.PUT("/favorite", updateFavorite)
 
-	domain := os.Getenv("DOMAIN")
-	ip := os.Getenv("IP")
+	domain, found := os.LookupEnv("DOMAIN")
+	if !found {
+		domain = "0.0.0.0"
+	}
+
+	ip, found := os.LookupEnv("IP")
+	if !found {
+		ip = "8083"
+	}
+
 	router.Run(fmt.Sprintf("%s:%s", domain, ip))
 }

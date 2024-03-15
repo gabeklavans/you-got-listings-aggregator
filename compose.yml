@@ -1,0 +1,9 @@
+services:
+  ygl-server:
+    image: golang:alpine
+    ports:
+      - 8083:8083
+    command: go run .
+    working_dir: /app
+    volumes:
+      - ./:/app
