@@ -5,6 +5,7 @@ import json
 import shutil
 import time
 import datetime
+import sqlite3
 from typing import Dict
 
 import requests
@@ -38,7 +39,7 @@ def ygl_listings(url: str):
         for listing in listings:
             yield listing
 
-def fill_properties(old_listings: Dict, new_listings: Dict, ygl_url_base: str):
+def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
     '''
     Fill a persistent props dict with listings and their data
 
@@ -57,14 +58,10 @@ def fill_properties(old_listings: Dict, new_listings: Dict, ygl_url_base: str):
         }
     }
     '''
+    cursor = con.cursor()
 
     # Make a formatted timestamp attribute 
     timestamp = time.time_ns()
-    current_datetime = datetime.datetime.fromtimestamp(timestamp/1e9)
-    formatted_date = current_datetime.strftime('%b. %d')
-    suffix = "th" if 11 <= current_datetime.day <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(current_datetime.day % 10, "th")
-    formatted_date = formatted_date.replace("{:02d}".format(current_datetime.day), str(current_datetime.day) + suffix)
-
     
     for listing in ygl_listings(f'{ygl_url_base}?beds_from=4&beds_to=5&rent_to=5200&date_from=08%2F02%2F2024'):
         listing_element = listing.find('a', class_='item_title')
@@ -80,57 +77,61 @@ def fill_properties(old_listings: Dict, new_listings: Dict, ygl_url_base: str):
         listing_baths = float(listing_props[2].split(' ')[0])
         listing_date = listing_props[3].split(' ')[1]
 
-        # Filter out 1 Baths.. and 4 Beds over $4,600:
+        # ignore 1 Baths.. and 4 Beds over $4,600
         if listing_baths >= 1.5 and listing_price/listing_beds <= 1150:
-            if listing_addr not in new_listings:
-                if listing_addr in old_listings:
-                    new_listings[listing_addr] = old_listings[listing_addr]
-                else:
-                    if args.notify:
-                        bot.notify(listing_url)
+            if listing_addr not in cur_listings:
+                if args.notify:
+                    bot.notify(listing_url)
 
-                # initialize a new entry for this listing
                 new_listing = {
-                    'refs': [],
-                    'price': -1,
+                    'addr': listing_addr,
+                    'refs': listing_url,
+                    "price": listing_price,
+                    'beds': listing_beds,
+                    'baths': listing_baths,
+                    'date': listing_date,
+                    'notes': '',
+                    'favorite': 0,
+                    'dismissed': 0,
+                    'timestamp': timestamp
                 }
+                cur_listings[listing_addr] = new_listing
 
-                # I moved the listing properties upward from here
-
-                new_listing['price'] = listing_price
-                new_listing['beds'] = listing_beds
-                new_listing['baths'] = listing_baths
-                new_listing['date'] = listing_date
-                new_listing['notes'] = ''
-                new_listing['isFavorite'] = False
-                new_listing['isDismissed'] = False
-                new_listing['timestamp'] = formatted_date
-
-                new_listings[listing_addr] = new_listing
+                cursor.execute('INSERT INTO listings VALUES(:addr, :refs, :price, :beds, :baths, :date, :notes, :favorite, :dismissed, :timestamp)', new_listing)
+                con.commit()
 
             # always check if this is a new copy of the listing
-            if listing_url not in new_listings[listing_addr]['refs']:
-                new_listings[listing_addr]['refs'].append(listing_url)
-
+            if listing_url not in cur_listings[listing_addr]['refs']:
+                cur_listings[listing_addr]['refs'] += f',{listing_url}'
+                # TODO: UPDATE the refs attr for this listing
 
 if __name__ == "__main__":
     with open('../public/data/sites.json', 'r', encoding='utf-8') as sites_fp:
         sites = json.load(sites_fp)
 
-    try:
-        shutil.copyfile('../public/data/listings.json', '../public/data/listings.bak.json')
-    except FileNotFoundError as e:
-        pass
+    con = sqlite3.connect("../ygl.db")
+    cur = con.cursor()
+    cur.execute('''CREATE TABLE IF NOT EXISTS listings(
+            addr TEXT PRIMARY KEY,
+            refs TEXT,
+            price INTEGER,
+            beds REAL,
+            baths REAL,
+            date TEXT,
+            notes TEXT,
+            favorite INTEGER,
+            dismissed INTEGER,
+            timestamp INTEGER
+	);''')
 
-    try:
-        with open('../public/data/listings.json', 'r', encoding='utf-8') as listings_fp:
-            old_listings = json.load(listings_fp)
-    except IOError as e:
-        old_listings = {}
+    cur_listings = {}
+    res = cur.execute('SELECT * FROM listings')
+    for listing in res.fetchall():
+        # we only ever use the address and the refs when looking at existing entries
+        # so we don't need to store the rest of the attributes here
+        cur_listings[listing[0]] = {"refs": listing[1]}
 
-    new_listings = {}
     for site in sites.keys():
-        fill_properties(old_listings, new_listings, site)
+        update_db(con, cur_listings, site)
 
-    with open('../public/data/listings.json', 'w', encoding='utf-8') as listings_file:
-        json.dump(new_listings, listings_file)
+    con.close()
