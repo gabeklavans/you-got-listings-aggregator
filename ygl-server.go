@@ -79,8 +79,18 @@ func main() {
 	defer db.Close()
 
 	createTableQuery := `CREATE TABLE IF NOT EXISTS listings (
-		id INTEGER PRIMARY KEY
+		addr TEXT PRIMARY KEY,
+		refs TEXT,
+		price INTEGER,
+		beds REAL,
+		baths REAL,
+		date TEXT,
+		notes TEXT,
+		favorite INTEGER,
+		dismissed INTEGER,
+		timestamp INTEGER
 	);`
+
 	_, err = db.Exec(createTableQuery)
 	if err != nil {
 		log.Fatal(err)

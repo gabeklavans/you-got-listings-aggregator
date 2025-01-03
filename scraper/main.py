@@ -2,17 +2,14 @@
 
 import argparse
 import json
-import shutil
-import time
-import datetime
 import sqlite3
+import time
 from typing import Dict
 
+import bot
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-
-import bot
 
 load_dotenv()
 
@@ -41,26 +38,12 @@ def ygl_listings(url: str):
 
 def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
     '''
-    Fill a persistent props dict with listings and their data
+    Fill a persistent props dict with listings and their data.
 
-    json format example
-    {
-        "100 Beefcake Rd": {
-            "refs": ["ygl.is/12345/678910", "ygl.is/12/34"],
-            "price": 4400,
-            "beds": 4,
-            "baths": 2,
-            "date": "09/01/2024",
-            "notes": "Evil, diabolical, lemon-scented",
-            "isFavorite": True,
-            "isDismissed": False,
-            "timestamp": 888888888,
-        }
-    }
+    See ygl-server.go for table schema
     '''
     cursor = con.cursor()
 
-    # Make a formatted timestamp attribute 
     timestamp = time.time_ns()
     
     for listing in ygl_listings(f'{ygl_url_base}?beds_from=4&beds_to=5&rent_to=5200&date_from=08%2F02%2F2024'):
@@ -97,35 +80,29 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
                 }
                 cur_listings[listing_addr] = new_listing
 
-                cursor.execute('INSERT INTO listings VALUES(:addr, :refs, :price, :beds, :baths, :date, :notes, :favorite, :dismissed, :timestamp)', new_listing)
-                con.commit()
+                cursor.execute('''
+                    INSERT INTO listings 
+                    VALUES(:addr, :refs, :price, :beds, :baths, :date, :notes, :favorite, :dismissed, :timestamp)
+                ''', new_listing)
 
             # always check if this is a new copy of the listing
             if listing_url not in cur_listings[listing_addr]['refs']:
                 cur_listings[listing_addr]['refs'] += f',{listing_url}'
-                # TODO: UPDATE the refs attr for this listing
+                cursor.execute('''
+                    UPDATE listings 
+                    SET refs = ? 
+                    WHERE addr == ? 
+                ''', (cur_listings[listing_addr]['refs'], listing_addr))
 
 if __name__ == "__main__":
     with open('../public/data/sites.json', 'r', encoding='utf-8') as sites_fp:
         sites = json.load(sites_fp)
 
-    con = sqlite3.connect("../ygl.db")
-    cur = con.cursor()
-    cur.execute('''CREATE TABLE IF NOT EXISTS listings(
-            addr TEXT PRIMARY KEY,
-            refs TEXT,
-            price INTEGER,
-            beds REAL,
-            baths REAL,
-            date TEXT,
-            notes TEXT,
-            favorite INTEGER,
-            dismissed INTEGER,
-            timestamp INTEGER
-	);''')
+    con = sqlite3.connect("../ygl.db", autocommit=True)
+    cursor = con.cursor()
 
     cur_listings = {}
-    res = cur.execute('SELECT * FROM listings')
+    res = cursor.execute('SELECT * FROM listings')
     for listing in res.fetchall():
         # we only ever use the address and the refs when looking at existing entries
         # so we don't need to store the rest of the attributes here
