@@ -13,21 +13,26 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-type ListingProps struct {
-	Refs        []string `json:"refs"`
-	Price       int      `json:"price"`
-	Beds        float32  `json:"beds"`
-	Baths       float32  `json:"baths"`
-	Date        string   `json:"date"`
-	Notes       string   `json:"notes"`
-	IsFavorite  bool     `json:"isFavorite"`
-	IsDismissed bool     `json:"isDismissed"`
+type ListingData struct {
+	Refs        string  `json:"refs"`
+	Price       int     `json:"price"`
+	Beds        float32 `json:"beds"`
+	Baths       float32 `json:"baths"`
+	Date        string  `json:"date"`
+	Notes       string  `json:"notes"`
+	IsFavorite  bool    `json:"isFavorite"`
+	IsDismissed bool    `json:"isDismissed"`
+	Timestamp   int     `json:"timestamp"`
 }
+
+type Listing map[string]ListingData
 
 type FavoriteIntent struct {
 	Address    string `json:"address"`
 	IsFavorite bool   `json:"isFavorite"`
 }
+
+var db *sql.DB
 
 func basicAuth(c *gin.Context) {
 	user, password, hasAuth := c.Request.BasicAuth()
@@ -40,43 +45,70 @@ func basicAuth(c *gin.Context) {
 	}
 }
 
+func getSites(c *gin.Context) {
+	sites := make(map[string]string)
+
+	sitesContent, err := os.ReadFile("./sites.json")
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	err = json.Unmarshal(sitesContent, &sites)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	c.JSON(http.StatusOK, sites)
+}
+
+func getListings(c *gin.Context) {
+	rows, err := db.Query("SELECT * FROM listings")
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+	defer rows.Close()
+
+	listings := make(Listing)
+
+	for rows.Next() {
+		var listingData ListingData
+		var listingAddr string
+		if err := rows.Scan(&listingAddr, &listingData.Refs, &listingData.Price, &listingData.Beds, &listingData.Baths, &listingData.Date, &listingData.Notes, &listingData.IsFavorite, &listingData.IsDismissed, &listingData.Timestamp); err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
+		}
+		listings[listingAddr] = listingData
+	}
+
+	if err := rows.Err(); err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	c.JSON(http.StatusOK, listings)
+}
+
 func updateFavorite(c *gin.Context) {
 	var body FavoriteIntent
 	c.BindJSON(&body)
 
-	listingsData, err := os.ReadFile("../public/data/listings.json")
+	_, err := db.Exec("UPDATE listings SET favorite = ? WHERE addr = ?", body.IsFavorite, body.Address)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
-
-	listings := make(map[string]ListingProps)
-	if err := json.Unmarshal(listingsData, &listings); err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-	}
-
-	listing, ok := listings[body.Address]
-	if !ok {
-		c.AbortWithError(http.StatusInternalServerError, err)
-	}
-	listing.IsFavorite = body.IsFavorite
-	listings[body.Address] = listing
-
-	listingsData, err = json.Marshal(listings)
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-	}
-
-	os.WriteFile("../public/data/listings.json", listingsData, 0666)
 
 	c.Status(http.StatusOK)
 }
 
 func main() {
-	db, err := sql.Open("sqlite3", "ygl.db")
+	var err error
+	db, err = sql.Open("sqlite3", "ygl.db")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
+
+	err = db.Ping()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	createTableQuery := `CREATE TABLE IF NOT EXISTS listings (
 		addr TEXT PRIMARY KEY,
@@ -96,22 +128,35 @@ func main() {
 		log.Fatal(err)
 	}
 
-	router := gin.Default()
-
-	router.Use(cors.Default())
-
-	router.Static("/static", "./public/")
-	router.PUT("/favorite", updateFavorite)
-
 	domain, found := os.LookupEnv("DOMAIN")
 	if !found {
 		domain = "0.0.0.0"
 	}
 
-	ip, found := os.LookupEnv("IP")
+	port, found := os.LookupEnv("PORT")
 	if !found {
-		ip = "8083"
+		port = "8083"
 	}
 
-	router.Run(fmt.Sprintf("%s:%s", domain, ip))
+	router := gin.Default()
+
+	router.Use(cors.Default())
+
+	router.Static("/static", "./public/")
+	router.LoadHTMLGlob("./templates/*")
+	router.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.tmpl", gin.H{
+			"domain": domain,
+			"port":   port,
+		})
+	})
+
+	v1 := router.Group("/v1")
+	{
+		v1.GET("/sites", getSites)
+		v1.GET("/listings", getListings)
+		v1.PATCH("/favorite", updateFavorite)
+	}
+
+	router.Run(fmt.Sprintf("%s:%s", domain, port))
 }

@@ -95,7 +95,7 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
                 ''', (cur_listings[listing_addr]['refs'], listing_addr))
 
 if __name__ == "__main__":
-    with open('../public/data/sites.json', 'r', encoding='utf-8') as sites_fp:
+    with open('../sites.json', 'r', encoding='utf-8') as sites_fp:
         sites = json.load(sites_fp)
 
     con = sqlite3.connect("../ygl.db", autocommit=True)
