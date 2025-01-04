@@ -1,13 +1,16 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type ListingProps struct {
@@ -69,6 +72,30 @@ func updateFavorite(c *gin.Context) {
 }
 
 func main() {
+	db, err := sql.Open("sqlite3", "ygl.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	createTableQuery := `CREATE TABLE IF NOT EXISTS listings (
+		addr TEXT PRIMARY KEY,
+		refs TEXT,
+		price INTEGER,
+		beds REAL,
+		baths REAL,
+		date TEXT,
+		notes TEXT,
+		favorite INTEGER,
+		dismissed INTEGER,
+		timestamp INTEGER
+	);`
+
+	_, err = db.Exec(createTableQuery)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	router := gin.Default()
 
 	router.Use(cors.Default())
