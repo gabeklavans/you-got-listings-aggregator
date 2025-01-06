@@ -81,7 +81,7 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
                 cur_listings[listing_addr] = new_listing
 
                 cursor.execute('''
-                    INSERT INTO listings 
+                    INSERT INTO Listings 
                     VALUES(:addr, :refs, :price, :beds, :baths, :date, :notes, :favorite, :dismissed, :timestamp)
                 ''', new_listing)
 
@@ -89,7 +89,7 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
             if listing_url not in cur_listings[listing_addr]['refs']:
                 cur_listings[listing_addr]['refs'] += f',{listing_url}'
                 cursor.execute('''
-                    UPDATE listings 
+                    UPDATE Listings 
                     SET refs = ? 
                     WHERE addr == ? 
                 ''', (cur_listings[listing_addr]['refs'], listing_addr))

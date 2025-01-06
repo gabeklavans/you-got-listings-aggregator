@@ -7,11 +7,36 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/mattn/go-sqlite3"
 )
+
+type ConfigType int
+
+const (
+	Integer ConfigType = iota
+	Boolean
+	String
+)
+
+type FilterConfig int
+
+const (
+	BedsMin FilterConfig = iota
+	BedsMax
+	PriceMax
+	DateMin
+)
+
+var filterConfigName = map[FilterConfig]string{
+	BedsMin:  "bedsMin",
+	BedsMax:  "bedsMax",
+	PriceMax: "priceMax",
+	DateMin:  "dateMax",
+}
 
 type ListingData struct {
 	Refs        string  `json:"refs"`
@@ -26,6 +51,13 @@ type ListingData struct {
 }
 
 type Listing map[string]ListingData
+
+type SearchFilter struct {
+	BedsMin  int `json:"bedsMin"`
+	BedsMax  int `json:"bedsMax"`
+	PriceMax int `json:"priceMax"`
+	DateMin  int `json:"dateMin"`
+}
 
 type FavoriteIntent struct {
 	Address    string `json:"address"`
@@ -62,7 +94,7 @@ func getSites(c *gin.Context) {
 }
 
 func getListings(c *gin.Context) {
-	rows, err := db.Query("SELECT * FROM listings")
+	rows, err := db.Query("SELECT * FROM Listings")
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
@@ -86,11 +118,60 @@ func getListings(c *gin.Context) {
 	c.JSON(http.StatusOK, listings)
 }
 
+func getSearchFilter(c *gin.Context) {
+	rows, err := db.Query("SELECT * FROM Config")
+	if err != nil {
+		fmt.Println("Failed to query DB")
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+	defer rows.Close()
+
+	searchFilter := SearchFilter{BedsMin: 0, BedsMax: 0, PriceMax: 0, DateMin: 0}
+
+	for rows.Next() {
+		var name, valueStr string
+		var configType ConfigType
+		if err := rows.Scan(&name, &valueStr, &configType); err != nil {
+			fmt.Println("Failed to scan next row in Config table")
+			c.AbortWithError(http.StatusInternalServerError, err)
+		}
+
+		// technically don't need to parse if it doesn't match any of the filter configs below
+		// but the Config table shouldn't ever grow that large, anyway
+		var value int64
+		switch configType {
+		case Integer:
+			value, err = strconv.ParseInt(valueStr, 0, 64)
+			if err != nil {
+				fmt.Println("Failed to parse " + valueStr)
+				c.AbortWithError(http.StatusInternalServerError, err)
+			}
+		default:
+			// all of the filter configs should be Integers
+			value = 0
+		}
+
+		// this probably could be more "dynamic" with a map but I don't forsee this growing past a certain low-ish number of items
+		switch name {
+		case filterConfigName[BedsMin]:
+			searchFilter.BedsMin = int(value)
+		case filterConfigName[BedsMax]:
+			searchFilter.BedsMax = int(value)
+		case filterConfigName[PriceMax]:
+			searchFilter.PriceMax = int(value)
+		case filterConfigName[DateMin]:
+			searchFilter.DateMin = int(value)
+		}
+	}
+
+	c.JSON(http.StatusOK, searchFilter)
+}
+
 func updateFavorite(c *gin.Context) {
 	var body FavoriteIntent
 	c.BindJSON(&body)
 
-	_, err := db.Exec("UPDATE listings SET favorite = ? WHERE addr = ?", body.IsFavorite, body.Address)
+	_, err := db.Exec("UPDATE Listings SET favorite = ? WHERE addr = ?", body.IsFavorite, body.Address)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
@@ -110,7 +191,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	createTableQuery := `CREATE TABLE IF NOT EXISTS listings (
+	createTableQuery := `CREATE TABLE IF NOT EXISTS Listings (
 		addr TEXT PRIMARY KEY,
 		refs TEXT,
 		price INTEGER,
@@ -121,6 +202,17 @@ func main() {
 		favorite INTEGER,
 		dismissed INTEGER,
 		timestamp INTEGER
+	);`
+
+	_, err = db.Exec(createTableQuery)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	createTableQuery = `CREATE TABLE IF NOT EXISTS Config (
+		name TEXT PRIMARY KEY,
+		value TEXT,
+		type INTEGER
 	);`
 
 	_, err = db.Exec(createTableQuery)
@@ -155,6 +247,7 @@ func main() {
 	{
 		v1.GET("/sites", getSites)
 		v1.GET("/listings", getListings)
+		v1.GET("/searchFilter", getSearchFilter)
 		v1.PATCH("/favorite", updateFavorite)
 	}
 
