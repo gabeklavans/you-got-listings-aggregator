@@ -13,7 +13,6 @@ from bs4 import BeautifulSoup
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--db', type=pathlib.Path, required=True, help='Path to sqlite DB file')
-parser.add_argument('--sites', type=pathlib.Path, required=True, help='Path to json file containing the YGL base sites to check')
 parser.add_argument('--notify', action='store_true', help='Enable notifications for new listings')
 args = parser.parse_args()
 
@@ -95,20 +94,22 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
                 ''', (cur_listings[listing_addr]['refs'], listing_addr))
 
 if __name__ == "__main__":
-    with open(args.sites, 'r', encoding='utf-8') as sites_fp:
-        sites = json.load(sites_fp)
-
     con = sqlite3.connect(args.db, autocommit=True)
     cursor = con.cursor()
 
     cur_listings = {}
-    res = cursor.execute('SELECT * FROM listings')
+    res = cursor.execute('SELECT * FROM Listings')
     for listing in res.fetchall():
         # we only ever use the address and the refs when looking at existing entries
         # so we don't need to store the rest of the attributes here
         cur_listings[listing[0]] = {"refs": listing[1]}
 
-    for site in sites.keys():
-        update_db(con, cur_listings, site)
+    brokers = []
+    res = cursor.execute('SELECT * FROM Brokers')
+    for broker in res.fetchall():
+        brokers.append(broker)
+
+    for broker in brokers:
+        update_db(con, cur_listings, broker[0])
 
     con.close()

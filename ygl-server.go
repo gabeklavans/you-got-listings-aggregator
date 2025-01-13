@@ -236,7 +236,7 @@ func runScraper(notify bool) {
 	defer scraperMutex.Unlock()
 	fmt.Println("Starting scraper...")
 
-	scraperCmdArgs := []string{"--db", "./ygl.db", "--sites", "./sites.json"}
+	scraperCmdArgs := []string{"--db", "./ygl.db"}
 	if notify {
 		scraperCmdArgs = append(scraperCmdArgs, "--notify")
 	}

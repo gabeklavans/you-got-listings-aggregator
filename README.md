@@ -33,7 +33,11 @@ RHEL-based systems (Fedora)
 sudo dnf in python3-devel libxml2-devel libxslt-devel
 ```
 
-- Install python dependencies (recommended to use a virtual environment)
+- Install python dependencies
+
+> [!TIP]
+> It's recommended to use a virtual environment
+
 ```sh
 python -m venv .venv
 source ./.venv/bin/activate # run `deactivate` to turn off the venv, or just `exit` the terminal
@@ -42,13 +46,24 @@ pip install -r ./scraper/requirements.txt
 
 ### Run
 
-- Start the server
+1. Start the server
+
+> [!IMPORTANT]
+> This initializes the DB that the scraper needs to exist
+
 ```sh
 go run .
 ```
 
-- Run the scraper manually (in a seperate terminal, with your venv activated if used)
+> [!NOTE]
+> The server will immediately run the scraper with notifications off on startup.
+
+2. Run the scraper manually (in a seperate terminal)
+
+> [!IMPORTANT]
+> Make sure you activate your venv first if you set one up
+
 ```sh
-./scraper/main.py --db ./ygl.db --sites ./sites-example.json
+./scraper/main.py --db ./ygl.db
 ```
 
