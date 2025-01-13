@@ -260,8 +260,6 @@ func startScraperRoutine() {
 	// to be more rate-friendly to the YGL sites
 	ticker := time.NewTicker(time.Hour)
 
-	runScraper(true)
-
 	for {
 		<-ticker.C
 		runScraper(true)
@@ -377,6 +375,8 @@ func main() {
 		v1.GET("/filter", getFilter)
 		v1.PATCH("/favorite", updateFavorite)
 	}
+
+	runScraper(false)
 
 	go startScraperRoutine()
 
