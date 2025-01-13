@@ -3,19 +3,19 @@ import logging
 import os
 
 import telegram
-from dotenv import load_dotenv
-
-load_dotenv()
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 
-bot = telegram.Bot(os.getenv('TG_KEY'))
+if not os.getenv('TG_KEY') or not os.getenv('CHAT_ID'):
+    raise Exception('Incorrect environment vars to send Telegram notification!')
+
+bot = telegram.Bot(os.getenv('TG_KEY', ''))
 async def send_message(msg: str):
     async with bot:
-        await bot.send_message(text=msg, chat_id=int(os.getenv('CHAT_ID')))
+        await bot.send_message(text=msg, chat_id=int(os.getenv('CHAT_ID', '')))
 
 def notify(url: str) -> None:
     asyncio.run(send_message(f'A wild listing appeared! {url}'))

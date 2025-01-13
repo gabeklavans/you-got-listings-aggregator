@@ -7,3 +7,4 @@ services:
       watch:
         - action: rebuild
           path: ./ygl-server.go
+    env_file: .env

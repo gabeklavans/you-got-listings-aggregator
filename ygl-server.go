@@ -2,16 +2,20 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
+	"gopkg.in/yaml.v3"
 )
 
 type ConfigType int
@@ -38,6 +42,23 @@ var filterConfigName = map[FilterConfig]string{
 	DateMin:  "dateMax",
 }
 
+var filterConfigType = map[FilterConfig]ConfigType{
+	BedsMin:  Integer,
+	BedsMax:  Integer,
+	PriceMax: Integer,
+	DateMin:  Integer,
+}
+
+type Broker struct {
+	Name string `json:"name" yaml:"name"`
+	URL  string `json:"url" yaml:"url"`
+}
+
+type Config struct {
+	Brokers []Broker ` yaml:"brokers"`
+	Filter  Filter   `yaml:"filter"`
+}
+
 type ListingData struct {
 	Refs        string  `json:"refs"`
 	Price       int     `json:"price"`
@@ -52,11 +73,11 @@ type ListingData struct {
 
 type Listing map[string]ListingData
 
-type SearchFilter struct {
-	BedsMin  int `json:"bedsMin"`
-	BedsMax  int `json:"bedsMax"`
-	PriceMax int `json:"priceMax"`
-	DateMin  int `json:"dateMin"`
+type Filter struct {
+	BedsMin  int `json:"bedsMin" yaml:"bedsMin"`
+	BedsMax  int `json:"bedsMax" yaml:"bedsMax"`
+	PriceMax int `json:"priceMax" yaml:"priceMax"`
+	DateMin  int `json:"dateMin" yaml:"dateMin"`
 }
 
 type FavoriteIntent struct {
@@ -65,6 +86,31 @@ type FavoriteIntent struct {
 }
 
 var db *sql.DB
+var scraperMutex sync.Mutex
+
+func updateFilter(filter Filter) {
+	updateCommandString := `INSERT INTO Config
+		VALUES(?, ?, ?)
+		ON CONFLICT(name) DO
+		UPDATE SET value=excluded.value, type=excluded.type`
+
+	_, err := db.Exec(updateCommandString, filterConfigName[BedsMin], filter.BedsMin, filterConfigType[BedsMin])
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = db.Exec(updateCommandString, filterConfigName[BedsMax], filter.BedsMax, filterConfigType[BedsMax])
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = db.Exec(updateCommandString, filterConfigName[PriceMax], filter.PriceMax, filterConfigType[PriceMax])
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = db.Exec(updateCommandString, filterConfigName[DateMin], filter.DateMin, filterConfigType[DateMin])
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
 func basicAuth(c *gin.Context) {
 	user, password, hasAuth := c.Request.BasicAuth()
@@ -77,20 +123,25 @@ func basicAuth(c *gin.Context) {
 	}
 }
 
-func getSites(c *gin.Context) {
-	sites := make(map[string]string)
-
-	sitesContent, err := os.ReadFile("./sites.json")
+func getBrokers(c *gin.Context) {
+	rows, err := db.Query("SELECT * FROM Brokers")
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
+	defer rows.Close()
 
-	err = json.Unmarshal(sitesContent, &sites)
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+	var brokers []Broker
+
+	for rows.Next() {
+		var broker Broker
+		if err := rows.Scan(&broker.URL, &broker.Name); err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
+		}
+
+		brokers = append(brokers, broker)
 	}
 
-	c.JSON(http.StatusOK, sites)
+	c.JSON(http.StatusOK, brokers)
 }
 
 func getListings(c *gin.Context) {
@@ -118,7 +169,7 @@ func getListings(c *gin.Context) {
 	c.JSON(http.StatusOK, listings)
 }
 
-func getSearchFilter(c *gin.Context) {
+func getFilter(c *gin.Context) {
 	rows, err := db.Query("SELECT * FROM Config")
 	if err != nil {
 		fmt.Println("Failed to query DB")
@@ -126,7 +177,7 @@ func getSearchFilter(c *gin.Context) {
 	}
 	defer rows.Close()
 
-	searchFilter := SearchFilter{BedsMin: 0, BedsMax: 0, PriceMax: 0, DateMin: 0}
+	filter := Filter{BedsMin: 0, BedsMax: 0, PriceMax: 0, DateMin: 0}
 
 	for rows.Next() {
 		var name, valueStr string
@@ -154,17 +205,17 @@ func getSearchFilter(c *gin.Context) {
 		// this probably could be more "dynamic" with a map but I don't forsee this growing past a certain low-ish number of items
 		switch name {
 		case filterConfigName[BedsMin]:
-			searchFilter.BedsMin = int(value)
+			filter.BedsMin = int(value)
 		case filterConfigName[BedsMax]:
-			searchFilter.BedsMax = int(value)
+			filter.BedsMax = int(value)
 		case filterConfigName[PriceMax]:
-			searchFilter.PriceMax = int(value)
+			filter.PriceMax = int(value)
 		case filterConfigName[DateMin]:
-			searchFilter.DateMin = int(value)
+			filter.DateMin = int(value)
 		}
 	}
 
-	c.JSON(http.StatusOK, searchFilter)
+	c.JSON(http.StatusOK, filter)
 }
 
 func updateFavorite(c *gin.Context) {
@@ -179,8 +230,52 @@ func updateFavorite(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+func runScraper(notify bool) {
+	// allows us to run scraper from any goroutine without race conditions
+	scraperMutex.Lock()
+	defer scraperMutex.Unlock()
+	fmt.Println("Starting scraper...")
+
+	scraperCmdArgs := []string{"--db", "./ygl.db", "--sites", "./sites.json"}
+	if notify {
+		scraperCmdArgs = append(scraperCmdArgs, "--notify")
+	}
+	scraperCmd := exec.Command("./scraper/main.py", scraperCmdArgs...)
+	scraperCmd.Env = append(os.Environ(),
+		fmt.Sprintf("TG_KEY=%s", os.Getenv("TG_KEY")),
+		fmt.Sprintf("CHAT_ID=%s", os.Getenv("CHAT_ID")),
+	)
+
+	scraperOut, err := scraperCmd.CombinedOutput()
+	if err != nil {
+		fmt.Println(string(scraperOut))
+		panic(err)
+	}
+
+	fmt.Printf("Scraper done with output:\n%s\n", string(scraperOut))
+}
+
+func startScraperRoutine() {
+	// NOTE: might want to use a Timer with some added variation on each tick
+	// to be more rate-friendly to the YGL sites
+	ticker := time.NewTicker(time.Hour)
+
+	runScraper(true)
+
+	for {
+		<-ticker.C
+		runScraper(true)
+	}
+}
+
 func main() {
-	var err error
+	// set up env
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	// set up DB
 	db, err = sql.Open("sqlite3", "ygl.db")
 	if err != nil {
 		log.Fatal(err)
@@ -203,7 +298,6 @@ func main() {
 		dismissed INTEGER,
 		timestamp INTEGER
 	);`
-
 	_, err = db.Exec(createTableQuery)
 	if err != nil {
 		log.Fatal(err)
@@ -214,19 +308,52 @@ func main() {
 		value TEXT,
 		type INTEGER
 	);`
-
 	_, err = db.Exec(createTableQuery)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	domain, found := os.LookupEnv("DOMAIN")
-	if !found {
+	createTableQuery = `CREATE TABLE IF NOT EXISTS Brokers (
+		url TEXT PRIMARY KEY,
+		name TEXT
+	);`
+	_, err = db.Exec(createTableQuery)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// read config
+	configFile, err := os.ReadFile("./config.yaml")
+	if err != nil {
+		log.Fatal(err)
+	}
+	config := Config{}
+	err = yaml.Unmarshal(configFile, &config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, broker := range config.Brokers {
+		_, err = db.Exec(`INSERT INTO Brokers
+			VALUES(?, ?)
+			ON CONFLICT(url) DO
+			UPDATE SET name=excluded.name`,
+			broker.URL, broker.Name)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	updateFilter(config.Filter)
+
+	// set up web server
+	domain := os.Getenv("DOMAIN")
+	if domain == "" {
 		domain = "0.0.0.0"
 	}
 
-	port, found := os.LookupEnv("PORT")
-	if !found {
+	port := os.Getenv("PORT")
+	if port == "" {
 		port = "8083"
 	}
 
@@ -245,11 +372,13 @@ func main() {
 
 	v1 := router.Group("/v1")
 	{
-		v1.GET("/sites", getSites)
+		v1.GET("/brokers", getBrokers)
 		v1.GET("/listings", getListings)
-		v1.GET("/searchFilter", getSearchFilter)
+		v1.GET("/filter", getFilter)
 		v1.PATCH("/favorite", updateFavorite)
 	}
+
+	go startScraperRoutine()
 
 	router.Run(fmt.Sprintf("%s:%s", domain, port))
 }
