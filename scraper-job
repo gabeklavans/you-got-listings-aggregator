@@ -1,1 +1,0 @@
-*/5 * * * * root export curl $MONITOR_URL?state=run ; cd app/scraper/ && ./.venv/bin/python3 ./main.py --notify && curl $MONITOR_URL?state=complete || curl $MONITOR_URL?state=fail

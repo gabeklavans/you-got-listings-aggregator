@@ -15,12 +15,19 @@ docker compose up -d
 
 ### Setup
 
-- Setup your *.env* file
+- Setup your **.env** file
 
 ```sh
 cp .env-example .env
 ```
-then fill your own values into *.env*
+then fill your own values into **.env**
+
+- Setup your **config.yaml** file
+
+```sh
+cp ./config-example.yaml ./config.yaml
+```
+then fill your own values into **config.yaml**
 
 - Install system deps
 

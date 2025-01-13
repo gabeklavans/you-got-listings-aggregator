@@ -1,0 +1,10 @@
+brokers:
+  - name: Leigha
+    url: "https://ygl.is/leigha-emery-1"
+  - name: Denis
+    url: "https://ygl.is/99334"
+
+filter:
+  bedsMin: 2
+  bedsMax: 2
+  priceMax: 3200
