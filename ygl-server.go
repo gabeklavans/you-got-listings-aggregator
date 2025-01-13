@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -51,13 +50,13 @@ var filterConfigType = map[FilterConfig]ConfigType{
 }
 
 type Broker struct {
-	Name string `yaml:"name"`
-	URL  string `yaml:"url"`
+	Name string `json:"name" yaml:"name"`
+	URL  string `json:"url" yaml:"url"`
 }
 
 type Config struct {
-	Brokers []Broker     `yaml:"brokers"`
-	Filter  Filter `yaml:"filter"`
+	Brokers []Broker ` yaml:"brokers"`
+	Filter  Filter   `yaml:"filter"`
 }
 
 type ListingData struct {
@@ -124,20 +123,25 @@ func basicAuth(c *gin.Context) {
 	}
 }
 
-func getSites(c *gin.Context) {
-	sites := make(map[string]string)
-
-	sitesContent, err := os.ReadFile("./sites.json")
+func getBrokers(c *gin.Context) {
+	rows, err := db.Query("SELECT * FROM Brokers")
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
+	defer rows.Close()
 
-	err = json.Unmarshal(sitesContent, &sites)
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+	var brokers []Broker
+
+	for rows.Next() {
+		var broker Broker
+		if err := rows.Scan(&broker.URL, &broker.Name); err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
+		}
+
+		brokers = append(brokers, broker)
 	}
 
-	c.JSON(http.StatusOK, sites)
+	c.JSON(http.StatusOK, brokers)
 }
 
 func getListings(c *gin.Context) {
@@ -368,7 +372,7 @@ func main() {
 
 	v1 := router.Group("/v1")
 	{
-		v1.GET("/sites", getSites)
+		v1.GET("/brokers", getBrokers)
 		v1.GET("/listings", getListings)
 		v1.GET("/filter", getFilter)
 		v1.PATCH("/favorite", updateFavorite)
