@@ -15,6 +15,13 @@ docker compose up -d
 
 ### Setup
 
+- Setup your *.env* file
+
+```sh
+cp .env-example .env
+```
+then fill your own values into *.env*
+
 - Install system deps
 
 Debian-based systems (Ubuntu)
@@ -42,7 +49,6 @@ go run .
 
 - Run the scraper manually (in a seperate terminal, with your venv activated if used)
 ```sh
-cd ./scraper # the scraper MUST be run from this directory, for now
-./main
+./scraper/main.py --db ./ygl.db --sites ./sites-example.json
 ```
 

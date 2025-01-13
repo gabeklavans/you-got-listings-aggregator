@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import pathlib
 import sqlite3
 import time
 from typing import Dict
@@ -9,11 +10,10 @@ from typing import Dict
 import bot
 import requests
 from bs4 import BeautifulSoup
-from dotenv import load_dotenv
-
-load_dotenv()
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--db', type=pathlib.Path, required=True, help='Path to sqlite DB file')
+parser.add_argument('--sites', type=pathlib.Path, required=True, help='Path to json file containing the YGL base sites to check')
 parser.add_argument('--notify', action='store_true', help='Enable notifications for new listings')
 args = parser.parse_args()
 
@@ -95,10 +95,10 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
                 ''', (cur_listings[listing_addr]['refs'], listing_addr))
 
 if __name__ == "__main__":
-    with open('../sites.json', 'r', encoding='utf-8') as sites_fp:
+    with open(args.sites, 'r', encoding='utf-8') as sites_fp:
         sites = json.load(sites_fp)
 
-    con = sqlite3.connect("../ygl.db", autocommit=True)
+    con = sqlite3.connect(args.db, autocommit=True)
     cursor = con.cursor()
 
     cur_listings = {}

@@ -7,10 +7,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -65,6 +69,7 @@ type FavoriteIntent struct {
 }
 
 var db *sql.DB
+var scraperMutex sync.Mutex
 
 func basicAuth(c *gin.Context) {
 	user, password, hasAuth := c.Request.BasicAuth()
@@ -179,8 +184,50 @@ func updateFavorite(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+func runScraper(notify bool) {
+	// allows us to run scraper from any goroutine without race conditions
+	scraperMutex.Lock()
+	defer scraperMutex.Unlock()
+	fmt.Println("Starting scraper...")
+
+	scraperCmdArgs := []string{"--db", "./ygl.db", "--sites", "./sites.json"}
+	if notify {
+		scraperCmdArgs = append(scraperCmdArgs, "--notify")
+	}
+	scraperCmd := exec.Command("./scraper/main.py", scraperCmdArgs...)
+	scraperCmd.Env = append(os.Environ(),
+		fmt.Sprintf("TG_KEY=%s", os.Getenv("TG_KEY")),
+		fmt.Sprintf("CHAT_ID=%s", os.Getenv("CHAT_ID")),
+	)
+
+	scraperOut, err := scraperCmd.CombinedOutput()
+	if err != nil {
+		fmt.Println(string(scraperOut))
+		panic(err)
+	}
+
+	fmt.Printf("Scraper done with output:\n%s\n", string(scraperOut))
+}
+
+func startScraperRoutine() {
+	// NOTE: might want to use a Timer with some added variation on each tick
+	// to be more rate-friendly to the YGL sites
+	ticker := time.NewTicker(time.Hour)
+
+	runScraper(true)
+
+	for {
+		<-ticker.C
+		runScraper(true)
+	}
+}
+
 func main() {
-	var err error
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	db, err = sql.Open("sqlite3", "ygl.db")
 	if err != nil {
 		log.Fatal(err)
@@ -250,6 +297,8 @@ func main() {
 		v1.GET("/searchFilter", getSearchFilter)
 		v1.PATCH("/favorite", updateFavorite)
 	}
+
+	go startScraperRoutine()
 
 	router.Run(fmt.Sprintf("%s:%s", domain, port))
 }
