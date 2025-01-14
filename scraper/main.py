@@ -45,7 +45,7 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
 
     timestamp = time.time_ns()
     
-    for listing in ygl_listings(f'{ygl_url_base}?beds_from=4&beds_to=5&rent_to=5200&date_from=08%2F02%2F2024'):
+    for listing in ygl_listings(f'{ygl_url_base}?beds_from=2&beds_to=2&rent_to=3300'):
         listing_element = listing.find('a', class_='item_title')
         listing_addr = listing_element.get_text()
         listing_url = listing_element['href']
@@ -59,8 +59,9 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
         listing_baths = float(listing_props[2].split(' ')[0])
         listing_date = listing_props[3].split(' ')[1]
 
+        # TODO: omg remove this I forgot it was here
         # ignore 1 Baths.. and 4 Beds over $4,600
-        if listing_baths >= 1.5 and listing_price/listing_beds <= 1150:
+        if True or (listing_baths >= 1.5 and listing_price/listing_beds <= 1150):
             if listing_addr not in cur_listings:
                 if args.notify:
                     bot.notify(listing_url)
