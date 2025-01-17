@@ -376,7 +376,9 @@ func main() {
 		v1.PATCH("/favorite", updateFavorite)
 	}
 
-	runScraper(false)
+	go func() {
+		runScraper(false)
+	}()
 
 	go startScraperRoutine()
 

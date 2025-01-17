@@ -4,8 +4,6 @@ Go server + website + Python scraper designed to manage YGL listing links receiv
 
 ## Run with Docker
 
-- Populate your `.env` file (take a look at `.env-example`)
-
 - For now, the only option is to build from source
 ```sh
 docker compose up -d
@@ -14,20 +12,6 @@ docker compose up -d
 ## Develop
 
 ### Setup
-
-- Setup your **.env** file
-
-```sh
-cp .env-example .env
-```
-then fill your own values into **.env**
-
-- Setup your **config.yaml** file
-
-```sh
-cp ./config-example.yaml ./config.yaml
-```
-then fill your own values into **config.yaml**
 
 - Install system deps
 
@@ -50,6 +34,26 @@ python -m venv .venv
 source ./.venv/bin/activate # run `deactivate` to turn off the venv, or just `exit` the terminal
 pip install -r ./scraper/requirements.txt
 ```
+
+#### OPTIONAL
+
+- Setup your **.env** file
+
+```sh
+cp .env-example .env
+```
+then fill your own values into **.env**
+
+The **.env** file allows you to adjust the domain/port of the server, as well as enter telegram bot credentials for notifications.
+
+- Setup your **config.yaml** file
+
+```sh
+cp ./config-example.yaml ./config.yaml
+```
+then fill your own values into **config.yaml**
+
+The **config.yaml** is where you can input your list of brokers and their base URLs. Check the example for the syntax.
 
 ### Run
 
