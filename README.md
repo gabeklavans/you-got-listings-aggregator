@@ -55,7 +55,7 @@ then fill your own values into **config.yaml**
 
 The **config.yaml** is where you can configure: 
 - your list of brokers and their base URLs
-- notification services
+- notification services, handled through [apprise](https://github.com/caronc/apprise) URLs
 
 Check the *config-example.yaml* for the syntax.
 
