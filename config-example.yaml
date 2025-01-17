@@ -4,6 +4,10 @@ brokers:
   - name: Denis
     url: "https://ygl.is/99334"
 
+notifications:
+  - "tgram://<your-bot-token>/<your-channel-id>"
+  - "ntfys://ntfy.sh/some-channel"
+
 filter:
   bedsMin: 2
   bedsMax: 2

@@ -1,4 +1,5 @@
 anyio==4.3.0
+apprise==1.9.2
 beautifulsoup4==4.12.3
 certifi==2024.2.2
 charset-normalizer==3.3.2

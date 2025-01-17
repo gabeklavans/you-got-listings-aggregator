@@ -44,7 +44,7 @@ cp .env-example .env
 ```
 then fill your own values into **.env**
 
-The **.env** file allows you to adjust the domain/port of the server, as well as enter telegram bot credentials for notifications.
+The **.env** file allows you to adjust the domain/port of the server
 
 - Setup your **config.yaml** file
 
@@ -53,7 +53,11 @@ cp ./config-example.yaml ./config.yaml
 ```
 then fill your own values into **config.yaml**
 
-The **config.yaml** is where you can input your list of brokers and their base URLs. Check the example for the syntax.
+The **config.yaml** is where you can configure: 
+- your list of brokers and their base URLs
+- notification services
+
+Check the *config-example.yaml* for the syntax.
 
 ### Run
 

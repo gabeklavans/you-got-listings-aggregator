@@ -24,6 +24,7 @@ const (
 	Integer ConfigType = iota
 	Boolean
 	String
+	Notification
 )
 
 type FilterConfig int
@@ -55,8 +56,9 @@ type Broker struct {
 }
 
 type Config struct {
-	Brokers []Broker ` yaml:"brokers"`
-	Filter  Filter   `yaml:"filter"`
+	Brokers       []Broker ` yaml:"brokers"`
+	Filter        Filter   `yaml:"filter"`
+	Notifications []string `yaml:"notifications"`
 }
 
 type ListingData struct {
@@ -255,6 +257,32 @@ func runScraper(notify bool) {
 	fmt.Printf("Scraper done with output:\n%s\n", string(scraperOut))
 }
 
+func processConfig(config Config) {
+	var err error
+
+	for _, broker := range config.Brokers {
+		_, err = db.Exec(`INSERT INTO Brokers
+			VALUES(?, ?)
+			ON CONFLICT(url) DO
+			UPDATE SET name=excluded.name`,
+			broker.URL, broker.Name)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	updateCommandString := `INSERT INTO Config
+		VALUES(?, ?, ?)
+		ON CONFLICT(name) DO
+		UPDATE SET value=excluded.value, type=excluded.type`
+	for idx, notif := range config.Notifications {
+		_, err = db.Exec(updateCommandString, idx, notif, Notification)
+	}
+
+	updateFilter(config.Filter)
+
+}
+
 func startScraperRoutine() {
 	// NOTE: might want to use a Timer with some added variation on each tick
 	// to be more rate-friendly to the YGL sites
@@ -331,18 +359,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for _, broker := range config.Brokers {
-		_, err = db.Exec(`INSERT INTO Brokers
-			VALUES(?, ?)
-			ON CONFLICT(url) DO
-			UPDATE SET name=excluded.name`,
-			broker.URL, broker.Name)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	updateFilter(config.Filter)
+	processConfig(config)
 
 	// set up web server
 	domain := os.Getenv("DOMAIN")

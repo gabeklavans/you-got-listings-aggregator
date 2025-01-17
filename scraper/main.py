@@ -1,15 +1,30 @@
 #!/usr/bin/env python3
 
 import argparse
-import json
+import logging
 import pathlib
 import sqlite3
 import time
+from enum import IntEnum, auto
 from typing import Dict
 
-import bot
 import requests
 from bs4 import BeautifulSoup
+from notify import notify, register_notifications
+
+
+# see ygl-server.go ConfigType
+class ConfigType(IntEnum):
+	INTEGER = 0
+	BOOLEAN = auto() 
+	STRING = auto()
+	NOTIFICATION = auto()
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--db', type=pathlib.Path, required=True, help='Path to sqlite DB file')
@@ -64,7 +79,7 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
         if True or (listing_baths >= 1.5 and listing_price/listing_beds <= 1150):
             if listing_addr not in cur_listings:
                 if args.notify:
-                    bot.notify(listing_url)
+                    notify(listing_url)
 
                 new_listing = {
                     'addr': listing_addr,
@@ -104,6 +119,13 @@ if __name__ == "__main__":
         # we only ever use the address and the refs when looking at existing entries
         # so we don't need to store the rest of the attributes here
         cur_listings[listing[0]] = {"refs": listing[1]}
+
+    notifs = []
+    res = cursor.execute('SELECT * FROM Config WHERE type == ?', [int(ConfigType.NOTIFICATION)])
+    for notif in res.fetchall():
+        logger.debug(f'adding ${notif=}')
+        notifs.append(notif[1])
+    register_notifications(notifs)
 
     brokers = []
     res = cursor.execute('SELECT * FROM Brokers')
