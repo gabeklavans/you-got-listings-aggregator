@@ -258,7 +258,7 @@ func runScraper(notify bool) {
 func processConfig(config Config) {
 	var err error
 
-	// clear the whole config every time, just read it all from config.yml
+	// clear the whole config every time, just read it all from config.yaml
 	_, err = db.Exec(`DROP TABLE IF EXISTS Config`)
 	if err != nil {
 		log.Fatal(err)
@@ -322,7 +322,7 @@ func main() {
 	// set up env
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Println("Problem loading .env file; running without one")
 	}
 
 	// set up DB
@@ -356,16 +356,17 @@ func main() {
 	// read config
 	configFile, err := os.ReadFile("./config.yaml")
 	if err != nil {
-		log.Fatal(err)
-	}
-	config := Config{}
-	err = yaml.Unmarshal(configFile, &config)
-	if err != nil {
-		log.Fatal(err)
-	}
+		log.Println("Problem loading config.yaml; running without one")
+	} else {
+		config := Config{}
+		err = yaml.Unmarshal(configFile, &config)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	// NOTE: Broker info is also processed in here
-	processConfig(config)
+		// NOTE: Broker info is also processed in here
+		processConfig(config)
+	}
 
 	// set up web server
 	domain := os.Getenv("DOMAIN")
