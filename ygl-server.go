@@ -92,9 +92,7 @@ var scraperMutex sync.Mutex
 
 func updateFilter(filter Filter) {
 	updateCommandString := `INSERT INTO Config
-		VALUES(?, ?, ?)
-		ON CONFLICT(name) DO
-		UPDATE SET value=excluded.value, type=excluded.type`
+		VALUES(?, ?, ?)`
 
 	_, err := db.Exec(updateCommandString, filterConfigName[BedsMin], filter.BedsMin, filterConfigType[BedsMin])
 	if err != nil {
@@ -260,21 +258,47 @@ func runScraper(notify bool) {
 func processConfig(config Config) {
 	var err error
 
+	// clear the whole config every time, just read it all from config.yml
+	_, err = db.Exec(`DROP TABLE IF EXISTS Config`)
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = db.Exec(`DROP TABLE IF EXISTS Brokers`)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// brokers
+	createTableQuery := `CREATE TABLE Brokers (
+		url TEXT PRIMARY KEY,
+		name TEXT
+	)`
+	_, err = db.Exec(createTableQuery)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	for _, broker := range config.Brokers {
 		_, err = db.Exec(`INSERT INTO Brokers
-			VALUES(?, ?)
-			ON CONFLICT(url) DO
-			UPDATE SET name=excluded.name`,
+			VALUES(?, ?)`,
 			broker.URL, broker.Name)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
+	// config
+	createTableQuery = `CREATE TABLE Config (
+		name TEXT PRIMARY KEY,
+		value TEXT,
+		type INTEGER
+	)`
+	_, err = db.Exec(createTableQuery)
+	if err != nil {
+		log.Fatal(err)
+	}
 	updateCommandString := `INSERT INTO Config
-		VALUES(?, ?, ?)
-		ON CONFLICT(name) DO
-		UPDATE SET value=excluded.value, type=excluded.type`
+		VALUES(?, ?, ?)`
 	for idx, notif := range config.Notifications {
 		_, err = db.Exec(updateCommandString, idx, notif, Notification)
 	}
@@ -329,25 +353,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	createTableQuery = `CREATE TABLE IF NOT EXISTS Config (
-		name TEXT PRIMARY KEY,
-		value TEXT,
-		type INTEGER
-	);`
-	_, err = db.Exec(createTableQuery)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	createTableQuery = `CREATE TABLE IF NOT EXISTS Brokers (
-		url TEXT PRIMARY KEY,
-		name TEXT
-	);`
-	_, err = db.Exec(createTableQuery)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// read config
 	configFile, err := os.ReadFile("./config.yaml")
 	if err != nil {
@@ -359,6 +364,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// NOTE: Broker info is also processed in here
 	processConfig(config)
 
 	// set up web server
