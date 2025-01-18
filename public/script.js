@@ -40,7 +40,7 @@ fetch(`${BASE_URL}/v1/brokers`)
             `<p id="listing${i}" class="listing"> <span class="timestamp">(${dateObj.toLocaleDateString("en-US", dateStringOptions)} ${dateObj.toLocaleTimeString("en-US")})\u00A0 - \u00A0</span> <span class="price">$${listingInfo.price} </span> \u00A0\u00A0 <span class="beds-baths"> ${listingInfo.beds}Bd / ${listingInfo.baths}bth </span>  
             \u00A0\u00A0\u00A0 <span class="address">${property[0]}:</span> \u00A0\u00A0\u00A0 <span class="name-tags">${nameTags} </span> </p>
             
-            <input type="text id="listing-notes" name="notes">`
+            <input type="text" id="listing-notes" name="notes">`
           );
           i++;
         });
