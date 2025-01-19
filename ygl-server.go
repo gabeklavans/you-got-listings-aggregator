@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"strconv"
 	"sync"
 	"time"
 
@@ -15,50 +14,37 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
-	"gopkg.in/yaml.v3"
 )
 
-type ConfigType int
+// enums
+type ConfigCategory string
 
 const (
-	Integer ConfigType = iota
-	Boolean
-	String
-	Notification
+	SETTING      ConfigCategory = "SETTING"
+	NOTIFICATION                = "NOTIFICATION"
+	FILTER                      = "FILTER"
 )
 
-type FilterConfig int
+type ConfigType string
 
 const (
-	BedsMin FilterConfig = iota
-	BedsMax
-	PriceMax
-	DateMin
+	INTEGER ConfigType = "INTEGER"
+	BOOLEAN            = "BOOLEAN"
+	STRING             = "STRING"
+	DATE               = "DATE"
 )
 
-var filterConfigName = map[FilterConfig]string{
-	BedsMin:  "bedsMin",
-	BedsMax:  "bedsMax",
-	PriceMax: "priceMax",
-	DateMin:  "dateMax",
-}
-
-var filterConfigType = map[FilterConfig]ConfigType{
-	BedsMin:  Integer,
-	BedsMax:  Integer,
-	PriceMax: Integer,
-	DateMin:  Integer,
-}
-
+// structs
 type Broker struct {
-	Name string `json:"name" yaml:"name"`
-	URL  string `json:"url" yaml:"url"`
+	Name string `json:"name"`
+	URL  string `json:"url"`
 }
 
 type Config struct {
-	Brokers       []Broker ` yaml:"brokers"`
-	Filter        Filter   `yaml:"filter"`
-	Notifications []string `yaml:"notifications"`
+	Name     string         `json:"name"`
+	Value    string         `json:"value"`
+	Type     ConfigType     `json:"type"`
+	Category ConfigCategory `json:"category"`
 }
 
 type ListingData struct {
@@ -75,13 +61,6 @@ type ListingData struct {
 
 type Listing map[string]ListingData
 
-type Filter struct {
-	BedsMin  int `json:"bedsMin" yaml:"bedsMin"`
-	BedsMax  int `json:"bedsMax" yaml:"bedsMax"`
-	PriceMax int `json:"priceMax" yaml:"priceMax"`
-	DateMin  int `json:"dateMin" yaml:"dateMin"`
-}
-
 type FavoriteIntent struct {
 	Address    string `json:"address"`
 	IsFavorite bool   `json:"isFavorite"`
@@ -89,28 +68,6 @@ type FavoriteIntent struct {
 
 var db *sql.DB
 var scraperMutex sync.Mutex
-
-func updateFilter(filter Filter) {
-	updateCommandString := `INSERT INTO Config
-		VALUES(?, ?, ?)`
-
-	_, err := db.Exec(updateCommandString, filterConfigName[BedsMin], filter.BedsMin, filterConfigType[BedsMin])
-	if err != nil {
-		log.Fatal(err)
-	}
-	_, err = db.Exec(updateCommandString, filterConfigName[BedsMax], filter.BedsMax, filterConfigType[BedsMax])
-	if err != nil {
-		log.Fatal(err)
-	}
-	_, err = db.Exec(updateCommandString, filterConfigName[PriceMax], filter.PriceMax, filterConfigType[PriceMax])
-	if err != nil {
-		log.Fatal(err)
-	}
-	_, err = db.Exec(updateCommandString, filterConfigName[DateMin], filter.DateMin, filterConfigType[DateMin])
-	if err != nil {
-		log.Fatal(err)
-	}
-}
 
 func basicAuth(c *gin.Context) {
 	user, password, hasAuth := c.Request.BasicAuth()
@@ -144,6 +101,21 @@ func getBrokers(c *gin.Context) {
 	c.JSON(http.StatusOK, brokers)
 }
 
+func updateBrokers(c *gin.Context) {
+	var brokers []Broker
+	err := c.BindJSON(&brokers)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	err = updateBrokersDB(brokers)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	c.Status(http.StatusOK)
+}
+
 func getListings(c *gin.Context) {
 	rows, err := db.Query("SELECT * FROM Listings")
 	if err != nil {
@@ -151,7 +123,7 @@ func getListings(c *gin.Context) {
 	}
 	defer rows.Close()
 
-	listings := make(Listing)
+	var listings Listing
 
 	for rows.Next() {
 		var listingData ListingData
@@ -169,60 +141,50 @@ func getListings(c *gin.Context) {
 	c.JSON(http.StatusOK, listings)
 }
 
-func getFilter(c *gin.Context) {
+func updateFavorite(c *gin.Context) {
+	var body FavoriteIntent
+	err := c.BindJSON(&body)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	_, err = db.Exec("UPDATE Listings SET favorite = ? WHERE addr = ?", body.IsFavorite, body.Address)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func getConfig(c *gin.Context) {
+	var configs []Config
+
 	rows, err := db.Query("SELECT * FROM Config")
 	if err != nil {
-		fmt.Println("Failed to query DB")
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
 	defer rows.Close()
 
-	filter := Filter{BedsMin: 0, BedsMax: 0, PriceMax: 0, DateMin: 0}
-
 	for rows.Next() {
-		var name, valueStr string
-		var configType ConfigType
-		if err := rows.Scan(&name, &valueStr, &configType); err != nil {
-			fmt.Println("Failed to scan next row in Config table")
+		var config Config
+		if err := rows.Scan(&config.Name, &config.Value, &config.Type, &config.Category); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 		}
 
-		// technically don't need to parse if it doesn't match any of the filter configs below
-		// but the Config table shouldn't ever grow that large, anyway
-		var value int64
-		switch configType {
-		case Integer:
-			value, err = strconv.ParseInt(valueStr, 0, 64)
-			if err != nil {
-				fmt.Println("Failed to parse " + valueStr)
-				c.AbortWithError(http.StatusInternalServerError, err)
-			}
-		default:
-			// all of the filter configs should be Integers
-			value = 0
-		}
-
-		// this probably could be more "dynamic" with a map but I don't forsee this growing past a certain low-ish number of items
-		switch name {
-		case filterConfigName[BedsMin]:
-			filter.BedsMin = int(value)
-		case filterConfigName[BedsMax]:
-			filter.BedsMax = int(value)
-		case filterConfigName[PriceMax]:
-			filter.PriceMax = int(value)
-		case filterConfigName[DateMin]:
-			filter.DateMin = int(value)
-		}
+		configs = append(configs, config)
 	}
 
-	c.JSON(http.StatusOK, filter)
+	c.JSON(http.StatusOK, configs)
 }
 
-func updateFavorite(c *gin.Context) {
-	var body FavoriteIntent
-	c.BindJSON(&body)
+func updateConfig(c *gin.Context) {
+	var config []Config
+	err := c.BindJSON(&config)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
 
-	_, err := db.Exec("UPDATE Listings SET favorite = ? WHERE addr = ?", body.IsFavorite, body.Address)
+	err = updateConfigDB(config)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
@@ -255,56 +217,56 @@ func runScraper(notify bool) {
 	fmt.Printf("Scraper done with output:\n%s\n", string(scraperOut))
 }
 
-func processConfig(config Config) {
-	var err error
-
-	// clear the whole config every time, just read it all from config.yaml
-	_, err = db.Exec(`DROP TABLE IF EXISTS Config`)
+func updateBrokersDB(brokers []Broker) error {
+	_, err := db.Exec(`DROP TABLE IF EXISTS Brokers`)
 	if err != nil {
-		log.Fatal(err)
-	}
-	_, err = db.Exec(`DROP TABLE IF EXISTS Brokers`)
-	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	// brokers
-	createTableQuery := `CREATE TABLE Brokers (
+	_, err = db.Exec(`CREATE TABLE Brokers (
 		url TEXT PRIMARY KEY,
 		name TEXT
-	)`
-	_, err = db.Exec(createTableQuery)
+	)`)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	for _, broker := range config.Brokers {
-		_, err = db.Exec(`INSERT INTO Brokers
-			VALUES(?, ?)`,
-			broker.URL, broker.Name)
+	for _, broker := range brokers {
+		_, err = db.Exec(`INSERT INTO Brokers VALUES(?, ?)`, broker.URL, broker.Name)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 	}
 
-	// config
-	createTableQuery = `CREATE TABLE Config (
+	return nil
+}
+
+func updateConfigDB(configs []Config) error {
+	// reset the current config every time. simple.
+	_, err := db.Exec(`DROP TABLE IF EXISTS Config`)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec(`CREATE TABLE Config (
 		name TEXT PRIMARY KEY,
 		value TEXT,
-		type INTEGER
-	)`
-	_, err = db.Exec(createTableQuery)
+		type TEXT,
+		category TEXT
+	)`)
 	if err != nil {
-		log.Fatal(err)
-	}
-	updateCommandString := `INSERT INTO Config
-		VALUES(?, ?, ?)`
-	for idx, notif := range config.Notifications {
-		_, err = db.Exec(updateCommandString, idx, notif, Notification)
+		return err
 	}
 
-	updateFilter(config.Filter)
+	for _, config := range configs {
+		_, err = db.Exec(`INSERT INTO Config VALUES(?, ?, ?, ?)`,
+			config.Name, config.Value, config.Type, config.Category)
+		if err != nil {
+			return err
+		}
+	}
 
+	return nil
 }
 
 func startScraperRoutine() {
@@ -347,25 +309,10 @@ func main() {
 		favorite INTEGER,
 		dismissed INTEGER,
 		timestamp INTEGER
-	);`
+	)`
 	_, err = db.Exec(createTableQuery)
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	// read config
-	configFile, err := os.ReadFile("./config.yaml")
-	if err != nil {
-		log.Println("Problem loading config.yaml; running without one")
-	} else {
-		config := Config{}
-		err = yaml.Unmarshal(configFile, &config)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// NOTE: Broker info is also processed in here
-		processConfig(config)
 	}
 
 	// set up web server
@@ -394,15 +341,13 @@ func main() {
 
 	v1 := router.Group("/v1")
 	{
+		v1.GET("/config", getConfig)
+		v1.PATCH("/config", updateConfig)
 		v1.GET("/brokers", getBrokers)
+		v1.PATCH("/brokers", updateBrokers)
 		v1.GET("/listings", getListings)
-		v1.GET("/filter", getFilter)
 		v1.PATCH("/favorite", updateFavorite)
 	}
-
-	go func() {
-		runScraper(false)
-	}()
 
 	go startScraperRoutine()
 
