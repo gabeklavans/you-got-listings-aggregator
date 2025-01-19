@@ -17,21 +17,21 @@ import (
 )
 
 // enums
-type ConfigCategory int
+type ConfigCategory string
 
 const (
-	Setting ConfigCategory = iota
-	Notification
-	Filter
+	SETTING      ConfigCategory = "SETTING"
+	NOTIFICATION                = "NOTIFICATION"
+	FILTER                      = "FILTER"
 )
 
-type ConfigType int
+type ConfigType string
 
 const (
-	Integer ConfigType = iota
-	Boolean
-	String
-	Date
+	INTEGER ConfigType = "INTEGER"
+	BOOLEAN            = "BOOLEAN"
+	STRING             = "STRING"
+	DATE               = "DATE"
 )
 
 // structs
@@ -251,8 +251,8 @@ func updateConfigDB(configs []Config) error {
 	_, err = db.Exec(`CREATE TABLE Config (
 		name TEXT PRIMARY KEY,
 		value TEXT,
-		type INTEGER,
-		category INTEGER
+		type TEXT,
+		category TEXT
 	)`)
 	if err != nil {
 		return err
