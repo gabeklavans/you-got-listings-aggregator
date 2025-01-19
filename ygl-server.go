@@ -330,13 +330,10 @@ func main() {
 
 	router.Use(cors.Default())
 
-	router.Static("/static", "./public/")
-	router.LoadHTMLGlob("./templates/*")
+	router.Static("/static", "./frontend/static/")
+	router.LoadHTMLGlob("./frontend/*.html")
 	router.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.tmpl", gin.H{
-			"domain": domain,
-			"port":   port,
-		})
+		c.HTML(http.StatusOK, "index.html", gin.H{})
 	})
 
 	v1 := router.Group("/v1")
