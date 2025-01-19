@@ -9,10 +9,10 @@ const dateStringOptions = {
 }
 
 // see index.tmpl for where these consts come from
-fetch(`${BASE_URL}/v1/brokers`)
+fetch(`${window.location.href}v1/brokers`)
   .then((response) => response.json())
   .then((brokers) => {
-    fetch(`${BASE_URL}/v1/listings`)
+    fetch(`${window.location.href}v1/listings`)
       .then((response) => response.json())
       .then((propertiesObject) => {
         // console.log(propertiesObject);

@@ -59,7 +59,7 @@ type ListingData struct {
 	Timestamp   int     `json:"timestamp"`
 }
 
-type Listing map[string]ListingData
+type Listings map[string]ListingData
 
 type FavoriteIntent struct {
 	Address    string `json:"address"`
@@ -123,7 +123,7 @@ func getListings(c *gin.Context) {
 	}
 	defer rows.Close()
 
-	var listings Listing
+	listings := make(Listings)
 
 	for rows.Next() {
 		var listingData ListingData
@@ -330,13 +330,10 @@ func main() {
 
 	router.Use(cors.Default())
 
-	router.Static("/static", "./public/")
-	router.LoadHTMLGlob("./templates/*")
+	router.Static("/static", "./frontend/static/")
+	router.LoadHTMLGlob("./frontend/*.html")
 	router.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.tmpl", gin.H{
-			"domain": domain,
-			"port":   port,
-		})
+		c.HTML(http.StatusOK, "index.html", gin.H{})
 	})
 
 	v1 := router.Group("/v1")
