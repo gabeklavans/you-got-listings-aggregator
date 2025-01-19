@@ -59,7 +59,7 @@ type ListingData struct {
 	Timestamp   int     `json:"timestamp"`
 }
 
-type Listing map[string]ListingData
+type Listings map[string]ListingData
 
 type FavoriteIntent struct {
 	Address    string `json:"address"`
@@ -123,7 +123,7 @@ func getListings(c *gin.Context) {
 	}
 	defer rows.Close()
 
-	var listings Listing
+	listings := make(Listings)
 
 	for rows.Next() {
 		var listingData ListingData
