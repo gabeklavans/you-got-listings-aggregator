@@ -56,9 +56,9 @@ type Broker struct {
 }
 
 type Config struct {
-	Brokers       []Broker ` yaml:"brokers"`
-	Filter        Filter   `yaml:"filter"`
-	Notifications []string `yaml:"notifications"`
+	Brokers       []Broker `json:"brokers" yaml:"brokers"`
+	Filter        Filter   `json:"filter" yaml:"filter"`
+	Notifications []string `json:"notifications" yaml:"notifications"`
 }
 
 type ListingData struct {
@@ -90,26 +90,28 @@ type FavoriteIntent struct {
 var db *sql.DB
 var scraperMutex sync.Mutex
 
-func updateFilter(filter Filter) {
+func updateFilter(filter Filter) error {
 	updateCommandString := `INSERT INTO Config
 		VALUES(?, ?, ?)`
 
 	_, err := db.Exec(updateCommandString, filterConfigName[BedsMin], filter.BedsMin, filterConfigType[BedsMin])
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	_, err = db.Exec(updateCommandString, filterConfigName[BedsMax], filter.BedsMax, filterConfigType[BedsMax])
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	_, err = db.Exec(updateCommandString, filterConfigName[PriceMax], filter.PriceMax, filterConfigType[PriceMax])
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	_, err = db.Exec(updateCommandString, filterConfigName[DateMin], filter.DateMin, filterConfigType[DateMin])
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	return nil
 }
 
 func basicAuth(c *gin.Context) {
@@ -220,14 +222,32 @@ func getFilter(c *gin.Context) {
 
 func updateFavorite(c *gin.Context) {
 	var body FavoriteIntent
-	c.BindJSON(&body)
+	err := c.BindJSON(&body)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
 
-	_, err := db.Exec("UPDATE Listings SET favorite = ? WHERE addr = ?", body.IsFavorite, body.Address)
+	_, err = db.Exec("UPDATE Listings SET favorite = ? WHERE addr = ?", body.IsFavorite, body.Address)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func updateConfig(c *gin.Context) {
+	var config Config
+	err := c.BindJSON(&config)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	err = processConfig(config)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	c.JSON(http.StatusOK, config)
 }
 
 func runScraper(notify bool) {
@@ -255,17 +275,17 @@ func runScraper(notify bool) {
 	fmt.Printf("Scraper done with output:\n%s\n", string(scraperOut))
 }
 
-func processConfig(config Config) {
+func processConfig(config Config) error {
 	var err error
 
 	// clear the whole config every time, just read it all from config.yaml
 	_, err = db.Exec(`DROP TABLE IF EXISTS Config`)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	_, err = db.Exec(`DROP TABLE IF EXISTS Brokers`)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	// brokers
@@ -275,7 +295,7 @@ func processConfig(config Config) {
 	)`
 	_, err = db.Exec(createTableQuery)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	for _, broker := range config.Brokers {
@@ -283,7 +303,7 @@ func processConfig(config Config) {
 			VALUES(?, ?)`,
 			broker.URL, broker.Name)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 	}
 
@@ -295,7 +315,7 @@ func processConfig(config Config) {
 	)`
 	_, err = db.Exec(createTableQuery)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	updateCommandString := `INSERT INTO Config
 		VALUES(?, ?, ?)`
@@ -303,8 +323,12 @@ func processConfig(config Config) {
 		_, err = db.Exec(updateCommandString, idx, notif, Notification)
 	}
 
-	updateFilter(config.Filter)
+	err = updateFilter(config.Filter)
+	if err != nil {
+		return err
+	}
 
+	return nil
 }
 
 func startScraperRoutine() {
@@ -365,7 +389,10 @@ func main() {
 		}
 
 		// NOTE: Broker info is also processed in here
-		processConfig(config)
+		err = processConfig(config)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	// set up web server
@@ -398,6 +425,7 @@ func main() {
 		v1.GET("/listings", getListings)
 		v1.GET("/filter", getFilter)
 		v1.PATCH("/favorite", updateFavorite)
+		v1.PATCH("/config", updateConfig)
 	}
 
 	go func() {
