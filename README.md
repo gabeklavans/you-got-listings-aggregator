@@ -46,19 +46,6 @@ then fill your own values into **.env**
 
 The **.env** file allows you to adjust the domain/port of the server
 
-- Setup your **config.yaml** file
-
-```sh
-cp ./config-example.yaml ./config.yaml
-```
-then fill your own values into **config.yaml**
-
-The **config.yaml** is where you can configure: 
-- your list of brokers and their base URLs
-- notification services, handled through [apprise](https://github.com/caronc/apprise) URLs
-
-Check the *config-example.yaml* for the syntax.
-
 ### Run
 
 1. Start the server
