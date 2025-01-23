@@ -121,10 +121,9 @@ if __name__ == "__main__":
         cur_listings[listing[0]] = {"refs": listing[1]}
 
     notifs = []
-    res = cursor.execute('SELECT * FROM Config WHERE type == ?', [int(ConfigType.NOTIFICATION)])
+    res = cursor.execute('SELECT * FROM Notifications')
     for notif in res.fetchall():
-        logger.debug(f'adding ${notif=}')
-        notifs.append(notif[1])
+        notifs.append(notif[0])
     register_notifications(notifs)
 
     brokers = []

@@ -16,37 +16,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// enums
-type ConfigCategory string
-
-const (
-	SETTING      ConfigCategory = "SETTING"
-	NOTIFICATION                = "NOTIFICATION"
-	FILTER                      = "FILTER"
-)
-
-type ConfigType string
-
-const (
-	INTEGER ConfigType = "INTEGER"
-	BOOLEAN            = "BOOLEAN"
-	STRING             = "STRING"
-	DATE               = "DATE"
-)
-
 // structs
-type Broker struct {
-	Name string `json:"name"`
-	URL  string `json:"url"`
-}
-
-type Config struct {
-	Name     string         `json:"name"`
-	Value    string         `json:"value"`
-	Type     ConfigType     `json:"type"`
-	Category ConfigCategory `json:"category"`
-}
-
 type ListingData struct {
 	Refs        string  `json:"refs"`
 	Price       int     `json:"price"`
@@ -59,6 +29,21 @@ type ListingData struct {
 	Timestamp   int     `json:"timestamp"`
 }
 
+type Broker struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
+type Filter struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+type Notification struct {
+	URL string `json:"url"`
+}
+
+// NOTE: key is the address
 type Listings map[string]ListingData
 
 type FavoriteIntent struct {
@@ -78,6 +63,31 @@ func basicAuth(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
+}
+
+func getListings(c *gin.Context) {
+	rows, err := db.Query("SELECT * FROM Listings")
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+	defer rows.Close()
+
+	listings := make(Listings)
+
+	for rows.Next() {
+		var listingData ListingData
+		var listingAddr string
+		if err := rows.Scan(&listingAddr, &listingData.Refs, &listingData.Price, &listingData.Beds, &listingData.Baths, &listingData.Date, &listingData.Notes, &listingData.IsFavorite, &listingData.IsDismissed, &listingData.Timestamp); err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
+		}
+		listings[listingAddr] = listingData
+	}
+
+	if err := rows.Err(); err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	c.JSON(http.StatusOK, listings)
 }
 
 func getBrokers(c *gin.Context) {
@@ -116,29 +126,76 @@ func updateBrokers(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func getListings(c *gin.Context) {
-	rows, err := db.Query("SELECT * FROM Listings")
+func getFilters(c *gin.Context) {
+	rows, err := db.Query("SELECT * FROM Filters")
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
 	defer rows.Close()
 
-	listings := make(Listings)
+	var filters []Filter
 
 	for rows.Next() {
-		var listingData ListingData
-		var listingAddr string
-		if err := rows.Scan(&listingAddr, &listingData.Refs, &listingData.Price, &listingData.Beds, &listingData.Baths, &listingData.Date, &listingData.Notes, &listingData.IsFavorite, &listingData.IsDismissed, &listingData.Timestamp); err != nil {
+		var filter Filter
+		if err := rows.Scan(&filter.Name, &filter.Value); err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 		}
-		listings[listingAddr] = listingData
+
+		filters = append(filters, filter)
 	}
 
-	if err := rows.Err(); err != nil {
+	c.JSON(http.StatusOK, filters)
+}
+
+func updateFilters(c *gin.Context) {
+	var filters []Filter
+	err := c.BindJSON(&filters)
+	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
 
-	c.JSON(http.StatusOK, listings)
+	err = updateFiltersDB(filters)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func getNotifications(c *gin.Context) {
+	rows, err := db.Query("SELECT * FROM Notifications")
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+	defer rows.Close()
+
+	var notifications []Notification
+
+	for rows.Next() {
+		var notification Notification
+		if err := rows.Scan(&notification.URL); err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
+		}
+
+		notifications = append(notifications, notification)
+	}
+
+	c.JSON(http.StatusOK, notifications)
+}
+
+func updateNotifications(c *gin.Context) {
+	var notifications []Notification
+	err := c.BindJSON(&notifications)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	err = updateNotificationsDB(notifications)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+	}
+
+	c.Status(http.StatusOK)
 }
 
 func updateFavorite(c *gin.Context) {
@@ -149,42 +206,6 @@ func updateFavorite(c *gin.Context) {
 	}
 
 	_, err = db.Exec("UPDATE Listings SET favorite = ? WHERE addr = ?", body.IsFavorite, body.Address)
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-	}
-
-	c.Status(http.StatusOK)
-}
-
-func getConfig(c *gin.Context) {
-	var configs []Config
-
-	rows, err := db.Query("SELECT * FROM Config")
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var config Config
-		if err := rows.Scan(&config.Name, &config.Value, &config.Type, &config.Category); err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
-		}
-
-		configs = append(configs, config)
-	}
-
-	c.JSON(http.StatusOK, configs)
-}
-
-func updateConfig(c *gin.Context) {
-	var config []Config
-	err := c.BindJSON(&config)
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-	}
-
-	err = updateConfigDB(config)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
@@ -218,15 +239,7 @@ func runScraper(notify bool) {
 }
 
 func updateBrokersDB(brokers []Broker) error {
-	_, err := db.Exec(`DROP TABLE IF EXISTS Brokers`)
-	if err != nil {
-		return err
-	}
-
-	_, err = db.Exec(`CREATE TABLE Brokers (
-		url TEXT PRIMARY KEY,
-		name TEXT
-	)`)
+	_, err := db.Exec(`DELETE FROM Brokers`)
 	if err != nil {
 		return err
 	}
@@ -241,29 +254,88 @@ func updateBrokersDB(brokers []Broker) error {
 	return nil
 }
 
-func updateConfigDB(configs []Config) error {
-	// reset the current config every time. simple.
-	_, err := db.Exec(`DROP TABLE IF EXISTS Config`)
+func updateFiltersDB(filters []Filter) error {
+	_, err := db.Exec(`DELETE FROM Filters`)
 	if err != nil {
 		return err
 	}
 
-	_, err = db.Exec(`CREATE TABLE Config (
-		name TEXT PRIMARY KEY,
-		value TEXT,
-		type TEXT,
-		category TEXT
+	for _, filter := range filters {
+		_, err = db.Exec(`INSERT INTO Filters VALUES(?, ?)`, filter.Name, filter.Value)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func updateNotificationsDB(notifs []Notification) error {
+	_, err := db.Exec(`DELETE FROM Notifications`)
+	if err != nil {
+		return err
+	}
+
+	for _, notif := range notifs {
+		_, err = db.Exec(`INSERT INTO Notifications VALUES(?)`, notif.URL)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func initDB() error {
+	var err error
+
+	db, err = sql.Open("sqlite3", "ygl.db")
+	if err != nil {
+		return err
+	}
+
+	err = db.Ping()
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS Listings (
+		addr TEXT PRIMARY KEY,
+		refs TEXT,
+		price INTEGER,
+		beds REAL,
+		baths REAL,
+		date TEXT,
+		notes TEXT,
+		favorite INTEGER,
+		dismissed INTEGER,
+		timestamp INTEGER
 	)`)
 	if err != nil {
 		return err
 	}
 
-	for _, config := range configs {
-		_, err = db.Exec(`INSERT INTO Config VALUES(?, ?, ?, ?)`,
-			config.Name, config.Value, config.Type, config.Category)
-		if err != nil {
-			return err
-		}
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS Brokers (
+		url TEXT PRIMARY KEY,
+		name TEXT
+	)`)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS Filters (
+		name TEXT PRIMARY KEY,
+		value TEXT
+	)`)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS Notifications (
+		url TEXT PRIMARY KEY
+	)`)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -288,32 +360,13 @@ func main() {
 	}
 
 	// set up DB
-	db, err = sql.Open("sqlite3", "ygl.db")
+	err = initDB()
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
-	err = db.Ping()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	createTableQuery := `CREATE TABLE IF NOT EXISTS Listings (
-		addr TEXT PRIMARY KEY,
-		refs TEXT,
-		price INTEGER,
-		beds REAL,
-		baths REAL,
-		date TEXT,
-		notes TEXT,
-		favorite INTEGER,
-		dismissed INTEGER,
-		timestamp INTEGER
-	)`
-	_, err = db.Exec(createTableQuery)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// start periodically scraping
+	go startScraperRoutine()
 
 	// set up web server
 	domain := os.Getenv("DOMAIN")
@@ -338,15 +391,15 @@ func main() {
 
 	v1 := router.Group("/v1")
 	{
-		v1.GET("/config", getConfig)
-		v1.PATCH("/config", updateConfig)
 		v1.GET("/brokers", getBrokers)
 		v1.PATCH("/brokers", updateBrokers)
+		v1.GET("/filters", getFilters)
+		v1.PATCH("/filters", updateFilters)
+		v1.GET("/notifications", getNotifications)
+		v1.PATCH("/notifications", updateNotifications)
 		v1.GET("/listings", getListings)
 		v1.PATCH("/favorite", updateFavorite)
 	}
-
-	go startScraperRoutine()
 
 	router.Run(fmt.Sprintf("%s:%s", domain, port))
 }
