@@ -96,7 +96,7 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
                 cur_listings[listing_addr] = new_listing
 
                 cursor.execute('''
-                    INSERT INTO Listings 
+                    INSERT INTO Listing 
                     VALUES(:addr, :refs, :price, :beds, :baths, :date, :notes, :favorite, :dismissed, :timestamp)
                 ''', new_listing)
 
@@ -104,7 +104,7 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
             if listing_url not in cur_listings[listing_addr]['refs']:
                 cur_listings[listing_addr]['refs'] += f',{listing_url}'
                 cursor.execute('''
-                    UPDATE Listings 
+                    UPDATE Listing 
                     SET refs = ? 
                     WHERE addr == ? 
                 ''', (cur_listings[listing_addr]['refs'], listing_addr))
@@ -114,20 +114,20 @@ if __name__ == "__main__":
     cursor = con.cursor()
 
     cur_listings = {}
-    res = cursor.execute('SELECT * FROM Listings')
+    res = cursor.execute('SELECT * FROM Listing')
     for listing in res.fetchall():
         # we only ever use the address and the refs when looking at existing entries
         # so we don't need to store the rest of the attributes here
         cur_listings[listing[0]] = {"refs": listing[1]}
 
     notifs = []
-    res = cursor.execute('SELECT * FROM Notifications')
+    res = cursor.execute('SELECT * FROM Notification')
     for notif in res.fetchall():
         notifs.append(notif[0])
     register_notifications(notifs)
 
     brokers = []
-    res = cursor.execute('SELECT * FROM Brokers')
+    res = cursor.execute('SELECT * FROM Broker')
     for broker in res.fetchall():
         brokers.append(broker)
 

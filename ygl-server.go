@@ -66,7 +66,7 @@ func basicAuth(c *gin.Context) {
 }
 
 func getListings(c *gin.Context) {
-	rows, err := db.Query("SELECT * FROM Listings")
+	rows, err := db.Query("SELECT * FROM Listing")
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
@@ -91,7 +91,7 @@ func getListings(c *gin.Context) {
 }
 
 func getBrokers(c *gin.Context) {
-	rows, err := db.Query("SELECT * FROM Brokers")
+	rows, err := db.Query("SELECT * FROM Broker")
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
@@ -127,7 +127,7 @@ func updateBrokers(c *gin.Context) {
 }
 
 func getFilters(c *gin.Context) {
-	rows, err := db.Query("SELECT * FROM Filters")
+	rows, err := db.Query("SELECT * FROM Filter")
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
@@ -163,7 +163,7 @@ func updateFilters(c *gin.Context) {
 }
 
 func getNotifications(c *gin.Context) {
-	rows, err := db.Query("SELECT * FROM Notifications")
+	rows, err := db.Query("SELECT * FROM Notification")
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
@@ -205,7 +205,7 @@ func updateFavorite(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
 
-	_, err = db.Exec("UPDATE Listings SET favorite = ? WHERE addr = ?", body.IsFavorite, body.Address)
+	_, err = db.Exec("UPDATE Listing SET favorite = ? WHERE addr = ?", body.IsFavorite, body.Address)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
@@ -239,13 +239,13 @@ func runScraper(notify bool) {
 }
 
 func updateBrokersDB(brokers []Broker) error {
-	_, err := db.Exec(`DELETE FROM Brokers`)
+	_, err := db.Exec(`DELETE FROM Broker`)
 	if err != nil {
 		return err
 	}
 
 	for _, broker := range brokers {
-		_, err = db.Exec(`INSERT INTO Brokers VALUES(?, ?)`, broker.URL, broker.Name)
+		_, err = db.Exec(`INSERT INTO Broker VALUES(?, ?)`, broker.URL, broker.Name)
 		if err != nil {
 			return err
 		}
@@ -255,13 +255,13 @@ func updateBrokersDB(brokers []Broker) error {
 }
 
 func updateFiltersDB(filters []Filter) error {
-	_, err := db.Exec(`DELETE FROM Filters`)
+	_, err := db.Exec(`DELETE FROM Filter`)
 	if err != nil {
 		return err
 	}
 
 	for _, filter := range filters {
-		_, err = db.Exec(`INSERT INTO Filters VALUES(?, ?)`, filter.Name, filter.Value)
+		_, err = db.Exec(`INSERT INTO Filter VALUES(?, ?)`, filter.Name, filter.Value)
 		if err != nil {
 			return err
 		}
@@ -271,13 +271,13 @@ func updateFiltersDB(filters []Filter) error {
 }
 
 func updateNotificationsDB(notifs []Notification) error {
-	_, err := db.Exec(`DELETE FROM Notifications`)
+	_, err := db.Exec(`DELETE FROM Notification`)
 	if err != nil {
 		return err
 	}
 
 	for _, notif := range notifs {
-		_, err = db.Exec(`INSERT INTO Notifications VALUES(?)`, notif.URL)
+		_, err = db.Exec(`INSERT INTO Notification VALUES(?)`, notif.URL)
 		if err != nil {
 			return err
 		}
@@ -299,7 +299,7 @@ func initDB() error {
 		return err
 	}
 
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS Listings (
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS Listing (
 		addr TEXT PRIMARY KEY,
 		refs TEXT,
 		price INTEGER,
@@ -315,7 +315,7 @@ func initDB() error {
 		return err
 	}
 
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS Brokers (
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS Broker (
 		url TEXT PRIMARY KEY,
 		name TEXT
 	)`)
@@ -323,7 +323,7 @@ func initDB() error {
 		return err
 	}
 
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS Filters (
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS Filter (
 		name TEXT PRIMARY KEY,
 		value TEXT
 	)`)
@@ -331,7 +331,7 @@ func initDB() error {
 		return err
 	}
 
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS Notifications (
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS Notification (
 		url TEXT PRIMARY KEY
 	)`)
 	if err != nil {
