@@ -75,7 +75,7 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
         name, val = filter_item
         if "Date" in name: # changing "YYYY-MM-DD" to "MM%2FDD%2FYYYY" for YGL parameter value
             year, month, day = val.split("-")
-            dl = "%2F" # delimiter (JH: yellow flag?)
+            dl = "%2F" # delimiter 
             val = f"{month}{dl}{day}{dl}{year}" 
         if name in filter_names:
             name = filter_names[name]
