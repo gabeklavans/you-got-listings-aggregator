@@ -60,7 +60,28 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
 
     timestamp = time.time_ns()
     
-    for listing in ygl_listings(f'{ygl_url_base}?beds_from=2&beds_to=2&rent_to=3300'):
+    # Listings with filters
+    filter_names = { # for translating our filter names to YGL parameter names
+        "BedsMin": "beds_from",
+        "BedsMax": "beds_to",
+        "RentMin": "rent_from",
+        "RentMax": "rent_to",
+        "DateMin": "date_from", # "YYYY-MM-DD"
+        "DateMax": "date_to" # "YYYY-MM-DD"
+    }
+    ygl_params = []
+    res = cursor.execute('SELECT * FROM Filter')
+    for filter_item in res.fetchall():
+        name, val = filter_item
+        if "Date" in name: # changing "YYYY-MM-DD" to "MM%2FDD%2FYYYY" for YGL parameter value
+            year, month, day = val.split("-")
+            dl = "%2F" # delimiter (JH: yellow flag?)
+            val = f"{month}{dl}{day}{dl}{year}" 
+        if name in filter_names:
+            name = filter_names[name]
+            ygl_params.append(f"{name}={val}") # "name=val"
+
+    for listing in ygl_listings(f'{ygl_url_base}?{"&".join(ygl_params)}'):
         listing_element = listing.find('a', class_='item_title')
         listing_addr = listing_element.get_text()
         listing_url = listing_element['href']
