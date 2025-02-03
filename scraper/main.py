@@ -15,10 +15,15 @@ from notify import notify, register_notifications
 
 # see ygl-server.go ConfigType
 class ConfigType(IntEnum):
-	INTEGER = 0
-	BOOLEAN = auto() 
-	STRING = auto()
-	NOTIFICATION = auto()
+    """TODO: _summary_
+
+    :param IntEnum: _description_
+    :type IntEnum: _type_
+    """
+    INTEGER = 0
+    BOOLEAN = auto()
+    STRING = auto()
+    NOTIFICATION = auto()
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
