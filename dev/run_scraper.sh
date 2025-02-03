@@ -1,1 +1,1 @@
-python scraper/main.py --db ygl.db
+python scraper/main.py --db ./data/ygl.db
