@@ -77,6 +77,7 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
     min_baths = 0
     max_baths = 999
     ygl_params = []
+
     res = cursor.execute('SELECT * FROM Filter')
     for filter_item in res.fetchall():
         name, val = filter_item
@@ -91,6 +92,9 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
             min_baths = float(val)
         elif name == "BathsMax":
             max_baths = float(val)
+
+    if min_baths == max_baths:
+        ygl_params.append(f"baths={min_baths}")
 
     for listing in ygl_listings(f'{ygl_url_base}?{"&".join(ygl_params)}'):
         listing_element = listing.find('a', class_='item_title')
