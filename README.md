@@ -66,6 +66,6 @@ go run .
 > Make sure you activate your venv first if you set one up
 
 ```sh
-./scraper/main.py --db ./ygl.db
+./scraper/main.py --db ./data/ygl.db
 ```
 
