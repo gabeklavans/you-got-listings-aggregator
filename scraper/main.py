@@ -105,7 +105,13 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
         if listing_baths < min_baths or listing_baths > max_baths:
             continue
         listing_price = int(''.join(filter(lambda char: char.isdigit(), listing_props[0])))
-        listing_beds = float(listing_props[1].split(' ')[0])
+        try:
+            # NOTE: Sometimes the beds value is something like "room available in a X bed house"
+            # which breaks the standard pattern expected by this parsing
+            listing_beds = float(listing_props[1].split(' ')[0])
+        except ValueError:
+            listing_beds = 0
+        listing_baths = float(listing_props[2].split(' ')[0])
         listing_date = listing_props[3].split(' ')[1]
 
         # TODO: omg remove this I forgot it was here
