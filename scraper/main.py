@@ -72,8 +72,10 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
         "RentMin": "rent_from",
         "RentMax": "rent_to",
         "DateMin": "date_from", # "YYYY-MM-DD"
-        "DateMax": "date_to" # "YYYY-MM-DD"
+        "DateMax": "date_to", # "YYYY-MM-DD"
     }
+    min_baths = 0
+    max_baths = 999
     ygl_params = []
     res = cursor.execute('SELECT * FROM Filter')
     for filter_item in res.fetchall():
@@ -85,6 +87,10 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
         if name in filter_names:
             name = filter_names[name]
             ygl_params.append(f"{name}={val}") # "name=val"
+        elif name == "BathsMin":
+            min_baths = float(val)
+        elif name == "BathsMax":
+            max_baths = float(val)
 
     for listing in ygl_listings(f'{ygl_url_base}?{"&".join(ygl_params)}'):
         listing_element = listing.find('a', class_='item_title')
@@ -95,9 +101,11 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
         listing_props = list(map(lambda tag: tag.text.strip(), listing_props_elements))
                     
         # the listing properties are well-ordered, so we parse them directly
+        listing_baths = float(listing_props[2].split(' ')[0])
+        if listing_baths < min_baths or listing_baths > max_baths:
+            continue
         listing_price = int(''.join(filter(lambda char: char.isdigit(), listing_props[0])))
         listing_beds = float(listing_props[1].split(' ')[0])
-        listing_baths = float(listing_props[2].split(' ')[0])
         listing_date = listing_props[3].split(' ')[1]
 
         # TODO: omg remove this I forgot it was here
