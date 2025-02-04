@@ -13,13 +13,6 @@ from bs4 import BeautifulSoup
 from notify import notify, register_notifications
 
 
-# see ygl-server.go ConfigType
-class ConfigType(IntEnum):
-	INTEGER = 0
-	BOOLEAN = auto() 
-	STRING = auto()
-	NOTIFICATION = auto()
-
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -67,9 +60,12 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
         "RentMin": "rent_from",
         "RentMax": "rent_to",
         "DateMin": "date_from", # "YYYY-MM-DD"
-        "DateMax": "date_to" # "YYYY-MM-DD"
+        "DateMax": "date_to", # "YYYY-MM-DD"
     }
+    min_baths = 0
+    max_baths = 999
     ygl_params = []
+
     res = cursor.execute('SELECT * FROM Filter')
     for filter_item in res.fetchall():
         name, val = filter_item
@@ -80,6 +76,13 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
         if name in filter_names:
             name = filter_names[name]
             ygl_params.append(f"{name}={val}") # "name=val"
+        elif name == "BathsMin":
+            min_baths = float(val)
+        elif name == "BathsMax":
+            max_baths = float(val)
+
+    if min_baths == max_baths:
+        ygl_params.append(f"baths={min_baths}")
 
     for listing in ygl_listings(f'{ygl_url_base}?{"&".join(ygl_params)}'):
         listing_element = listing.find('a', class_='item_title')
@@ -90,6 +93,9 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
         listing_props = list(map(lambda tag: tag.text.strip(), listing_props_elements))
                     
         # the listing properties are well-ordered, so we parse them directly
+        listing_baths = float(listing_props[2].split(' ')[0])
+        if listing_baths < min_baths or listing_baths > max_baths:
+            continue
         listing_price = int(''.join(filter(lambda char: char.isdigit(), listing_props[0])))
         try:
             # NOTE: Sometimes the beds value is something like "room available in a X bed house"
@@ -97,7 +103,6 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
             listing_beds = float(listing_props[1].split(' ')[0])
         except ValueError:
             listing_beds = 0
-        listing_baths = float(listing_props[2].split(' ')[0])
         listing_date = listing_props[3].split(' ')[1]
 
         # TODO: omg remove this I forgot it was here
