@@ -13,18 +13,6 @@ from bs4 import BeautifulSoup
 from notify import notify, register_notifications
 
 
-# see ygl-server.go ConfigType
-class ConfigType(IntEnum):
-    """TODO: _summary_
-
-    :param IntEnum: _description_
-    :type IntEnum: _type_
-    """
-    INTEGER = 0
-    BOOLEAN = auto()
-    STRING = auto()
-    NOTIFICATION = auto()
-
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -115,7 +103,6 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
             listing_beds = float(listing_props[1].split(' ')[0])
         except ValueError:
             listing_beds = 0
-        listing_baths = float(listing_props[2].split(' ')[0])
         listing_date = listing_props[3].split(' ')[1]
 
         # TODO: omg remove this I forgot it was here

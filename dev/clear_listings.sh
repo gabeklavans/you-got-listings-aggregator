@@ -1,2 +1,2 @@
 #!/bin/bash
-sqlite3 ygl.db "DELETE FROM Listing"
+./dev/clear_table.sh Listing
