@@ -1,2 +1,2 @@
 #!/bin/bash
-sqlite3 ygl.db "DELETE FROM $1"
+sqlite3 ./data/ygl.db "DELETE FROM $1"

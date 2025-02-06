@@ -1,5 +1,5 @@
 #!/bin/bash
-sqlite3 ygl.db "INSERT INTO Filter (name, value) 
+sqlite3 ./data/ygl.db "INSERT INTO Filter (name, value) 
 VALUES 
     ('BedsMin', 2), 
     ('RentMax', 3400), 

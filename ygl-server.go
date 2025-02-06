@@ -219,7 +219,7 @@ func runScraper(notify bool) {
 	defer scraperMutex.Unlock()
 	fmt.Println("Starting scraper...")
 
-	scraperCmdArgs := []string{"--db", "./ygl.db"}
+	scraperCmdArgs := []string{"--db", "./data/ygl.db"}
 	if notify {
 		scraperCmdArgs = append(scraperCmdArgs, "--notify")
 	}
@@ -289,7 +289,7 @@ func updateNotificationsDB(notifs []Notification) error {
 func initDB() error {
 	var err error
 
-	db, err = sql.Open("sqlite3", "ygl.db")
+	db, err = sql.Open("sqlite3", "./data/ygl.db")
 	if err != nil {
 		return err
 	}

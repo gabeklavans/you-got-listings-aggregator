@@ -3,6 +3,8 @@ services:
     build: .
     ports:
       - 8083:8083
+    volumes:
+      - ./data:/app/data
     develop:
       watch:
         - action: rebuild
