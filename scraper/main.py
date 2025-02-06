@@ -93,7 +93,7 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
         listing_addr = listing_element.get_text()
         addr_area = listing_addr.split(",")[-1] # we're assuming that the part of the address after the last comma includes the neighborhood/town/city
         if any([excluded_word.lower() in addr_area.lower() for excluded_word in exclude_words_addr]):
-            continue # move on to next listing if any excluded word found in listing address
+            continue # move on to next listing if any excluded word found in listing address'
         listing_url = listing_element['href']
 
         listing_props_elements = listing.find_all('div', class_='column')
