@@ -91,7 +91,7 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
     for listing in ygl_listings(f'{ygl_url_base}?{"&".join(ygl_params)}'):
         listing_element = listing.find('a', class_='item_title')
         listing_addr = listing_element.get_text()
-        if any([excluded_word in listing_addr for excluded_word in exclude_words_addr]):
+        if any([excluded_word.lower() in listing_addr.lower() for excluded_word in exclude_words_addr]):
             continue # move on to next listing if any excluded word found in listing address
         listing_url = listing_element['href']
 
