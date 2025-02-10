@@ -64,6 +64,7 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
     }
     min_baths = 0
     max_baths = 999
+    exclude_words_addr = set()
     ygl_params = []
 
     res = cursor.execute('SELECT * FROM Filter')
@@ -80,6 +81,9 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
             min_baths = float(val)
         elif name == "BathsMax":
             max_baths = float(val)
+        elif name == "ExcludeAreas":
+            for word in str(val).split(","): # split each excluded word with commas as delimiters
+                exclude_words_addr.add(word.strip()) # strip leading and trailing whitespaces
 
     if min_baths == max_baths:
         ygl_params.append(f"baths={min_baths}")
@@ -87,6 +91,9 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
     for listing in ygl_listings(f'{ygl_url_base}?{"&".join(ygl_params)}'):
         listing_element = listing.find('a', class_='item_title')
         listing_addr = listing_element.get_text()
+        addr_area = listing_addr.split(",")[-1] # we're assuming that the part of the address after the last comma includes the neighborhood/town/city
+        if any([excluded_word.lower() in addr_area.lower() for excluded_word in exclude_words_addr]):
+            continue # move on to next listing if any excluded word found in listing address' area
         listing_url = listing_element['href']
 
         listing_props_elements = listing.find_all('div', class_='column')
@@ -95,7 +102,7 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
         # the listing properties are well-ordered, so we parse them directly
         listing_baths = float(listing_props[2].split(' ')[0])
         if listing_baths < min_baths or listing_baths > max_baths:
-            continue
+            continue # move on to next listing if number of baths is outside desired range
         listing_price = int(''.join(filter(lambda char: char.isdigit(), listing_props[0])))
         try:
             # NOTE: Sometimes the beds value is something like "room available in a X bed house"
@@ -105,40 +112,37 @@ def update_db(con: sqlite3.Connection, cur_listings: Dict, ygl_url_base: str):
             listing_beds = 0
         listing_date = listing_props[3].split(' ')[1]
 
-        # TODO: omg remove this I forgot it was here
-        # ignore 1 Baths.. and 4 Beds over $4,600
-        if True or (listing_baths >= 1.5 and listing_price/listing_beds <= 1150):
-            if listing_addr not in cur_listings:
-                if args.notify:
-                    notify(listing_url)
+        if listing_addr not in cur_listings:
+            if args.notify:
+                notify(listing_url)
 
-                new_listing = {
-                    'addr': listing_addr,
-                    'refs': listing_url,
-                    "price": listing_price,
-                    'beds': listing_beds,
-                    'baths': listing_baths,
-                    'date': listing_date,
-                    'notes': '',
-                    'favorite': 0,
-                    'dismissed': 0,
-                    'timestamp': timestamp
-                }
-                cur_listings[listing_addr] = new_listing
+            new_listing = {
+                'addr': listing_addr,
+                'refs': listing_url,
+                "price": listing_price,
+                'beds': listing_beds,
+                'baths': listing_baths,
+                'date': listing_date,
+                'notes': '',
+                'favorite': 0,
+                'dismissed': 0,
+                'timestamp': timestamp
+            }
+            cur_listings[listing_addr] = new_listing
 
-                cursor.execute('''
-                    INSERT INTO Listing 
-                    VALUES(:addr, :refs, :price, :beds, :baths, :date, :notes, :favorite, :dismissed, :timestamp)
-                ''', new_listing)
+            cursor.execute('''
+                INSERT INTO Listing 
+                VALUES(:addr, :refs, :price, :beds, :baths, :date, :notes, :favorite, :dismissed, :timestamp)
+            ''', new_listing)
 
-            # always check if this is a new copy of the listing
-            if listing_url not in cur_listings[listing_addr]['refs']:
-                cur_listings[listing_addr]['refs'] += f',{listing_url}'
-                cursor.execute('''
-                    UPDATE Listing 
-                    SET refs = ? 
-                    WHERE addr == ? 
-                ''', (cur_listings[listing_addr]['refs'], listing_addr))
+        # always check if this is a new copy of the listing
+        if listing_url not in cur_listings[listing_addr]['refs']:
+            cur_listings[listing_addr]['refs'] += f',{listing_url}'
+            cursor.execute('''
+                UPDATE Listing 
+                SET refs = ? 
+                WHERE addr == ? 
+            ''', (cur_listings[listing_addr]['refs'], listing_addr))
 
 if __name__ == "__main__":
     con = sqlite3.connect(args.db, autocommit=True)
