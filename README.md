@@ -26,6 +26,9 @@ sudo dnf in python3-devel libxml2-devel libxslt-devel
 
 - Install python dependencies
 
+> [!IMPORTANT]
+> python3.12 is the minimum verision required due to usage of [the autocommit](https://docs.python.org/3/library/sqlite3.html#sqlite3.connect) sqlite3 parameter
+
 > [!TIP]
 > It's recommended to use a virtual environment
 
