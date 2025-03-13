@@ -1,23 +1,33 @@
 settingsForm = document.forms["settings"];
 settingsForm.addEventListener(
   "submit",
-  (event) => {
+  async (event) => {
+    event.preventDefault();
     const formData = new FormData(
       settingsForm,
       document.querySelector("button[value=Save]"),
     );
-    for (const [key, value] of formData) {
-      console.log(`${key}: ${value}`);
-      switch (key) {
-        case "BedsMin":
-          break;
 
-        default:
-          break;
+    const filters = []
+    for (const [key, value] of formData) {
+      if (!value) {
+        continue;
       }
+
+      filters.push({
+        "name": key,
+        "value": value,
+      });
     }
 
-    event.preventDefault();
+    await fetch(`${window.location.origin}/v1/filters`, {
+      method: "PATCH",
+      body: JSON.stringify(filters)
+    });
+
+    alert(`I guess I'll filter on those.... not because I want to or anything...... >.<'`);
+
+    document.location.assign(document.location.origin);
   },
   false,
 );
