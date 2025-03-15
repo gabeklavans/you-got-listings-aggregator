@@ -1,3 +1,21 @@
+function minMaxBoundsCheck(minElement, maxElement) {
+  const elements = [minElement, maxElement];
+  for (const element of elements) {
+    element.addEventListener("input", _ => {
+      if (parseInt(minElement.value.replaceAll("-", "")) > parseInt(maxElement.value.replaceAll("-", ""))) {
+        element.setCustomValidity("Maximum cannot be greater than minimum.")
+      } else {
+        element.setCustomValidity("")
+      }
+    });
+  }
+}
+
+minMaxBoundsCheck(document.getElementsByName("BedsMin")[0], document.getElementsByName("BedsMax")[0]);
+minMaxBoundsCheck(document.getElementsByName("BathsMin")[0], document.getElementsByName("BathsMax")[0]);
+minMaxBoundsCheck(document.getElementsByName("RentMin")[0], document.getElementsByName("RentMax")[0]);
+minMaxBoundsCheck(document.getElementsByName("DateMin")[0], document.getElementsByName("DateMax")[0]);
+
 settingsForm = document.forms["settings"];
 settingsForm.addEventListener(
   "submit",
@@ -20,6 +38,8 @@ settingsForm.addEventListener(
       });
     }
 
+    console.debug("sending filters");
+    console.debug(filters)
     await fetch(`${window.location.origin}/v1/filters`, {
       method: "PATCH",
       body: JSON.stringify(filters)
