@@ -2,7 +2,6 @@ let propertiesObject = {};
 let propertiesDiv = document.getElementsByClassName("properties");
 
 const dateStringOptions = {
-  weekday: "long",
   year: "numeric",
   month: "long",
   day: "numeric",
@@ -36,12 +35,12 @@ fetch(`${window.location.origin}/v1/brokers`)
           }
 
           dateObj = new Date(listingInfo.timestamp / 1000000)
-          const p = $(".properties").append(`
+          $(".properties").append(`
 <p id="listing${i}" class="listing">
-  <span class="timestamp">(${dateObj.toLocaleDateString("en-US", dateStringOptions)} ${dateObj.toLocaleTimeString("en-US")})\u00A0 - \u00A0</span>
-  <span class="price">$${listingInfo.price} </span> \u00A0\u00A0
-  <span class="beds-baths"> ${listingInfo.beds}Bd / ${listingInfo.baths}bth </span> \u00A0\u00A0\u00A0
-  <span class="address">${property[0]}:</span> \u00A0\u00A0\u00A0
+  <span class="timestamp">scraped: ${dateObj.toLocaleDateString("en-US", dateStringOptions)} ${dateObj.toLocaleTimeString("en-US")}</span> \u00A0
+  <span class="price">$${listingInfo.price} </span> \u00A0
+  <span class="beds-baths"> ${listingInfo.beds}Bd / ${listingInfo.baths}bth </span> \u00A0
+  <span class="address">${property[0]}:</span> \u00A0
   <span class="name-tags">${nameTags} </span>
 </p>
 <hr />

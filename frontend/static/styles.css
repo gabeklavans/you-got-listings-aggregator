@@ -4,7 +4,7 @@
   box-sizing: inherit;
 }
 
-#listings-area {
+body {
   padding: 2%;
   background-color: rgb(216, 216, 246);
 }
@@ -21,6 +21,11 @@
 .listing {
   margin-top: 1%;
   margin-bottom: 1%;
+}
+
+.timestamp {
+  opacity: 50%;
+  font-size: small;
 }
 
 input {
