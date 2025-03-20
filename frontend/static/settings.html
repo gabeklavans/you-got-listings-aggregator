@@ -11,29 +11,69 @@
   </header>
   <article>
     <form id="settings" name="settings">
+      <input type="submit" value="Save" />
+
+      <label>
+        <p><strong>Broker Names:</strong></p>
+        <p><small>comma-separated</small></p>
+        <p>
+          <small>example: <code>ray,taylor,alex</code></small>
+        </p>
+      </label>
+
+      <hr>
+
+      <input name="BrokerNames" type="text" />
+      <label>
+        <p><strong>Broker Urls:</strong></p>
+        <p><small>comma-separated, in the same order as the names</small></p>
+        <p>
+          <small>example: <code>https://ygl.is/112233,https://ygl.is/taylorm,https://ygl.is/alex</code></small>
+        </p>
+      </label>
+      <input name="BrokerUrls" type="text" />
+
+      <hr>
+
       <label>Beds Minimum: </label>
       <input name="BedsMin" class="Beds" type="number" min="0" />
+
+      <hr>
 
       <label>Beds Maximum: </label>
       <input name="BedsMax" class="Beds" type="number" min="0" />
 
+      <hr>
+
       <label>Baths Minimum: </label>
       <input name="BathsMin" class="Baths" type="number" min="0" />
+
+      <hr>
 
       <label>Baths Maximum: </label>
       <input name="BathsMax" class="Baths" type="number" min="0" />
 
+      <hr>
+
       <label>Rent Minimum: </label>
       <input name="RentMin" class="Rent" type="number" min="0" step="100" />
+
+      <hr>
 
       <label>Rent Maximum: </label>
       <input name="RentMax" class="Rent" type="number" min="0" step="100" />
 
+      <hr>
+
       <label>Earliest Availability: </label>
       <input name="DateMin" class="Date" type="date" />
 
+      <hr>
+
       <label>Latest Availability: </label>
       <input name="DateMax" class="Date" type="date" />
+
+      <hr>
 
       <label>
         <p>Excluded Area Words:</p>
@@ -44,6 +84,20 @@
       </label>
       <input name="ExcludedAreas" type="text" />
 
+      <hr>
+
+      <label>
+        <p>Notification Urls:</p>
+        <p><small>comma-separated</small></p>
+        <p>
+          <small>example: <code>discord://webhook_id/webhook_token,tgram://bottoken/ChatID</code></small>
+        </p>
+        <p>
+          <small>see <a target="_blank" href="https://github.com/caronc/apprise?tab=readme-ov-file#productivity-based-notifications">apprise docs</a> for examples</small>
+        </p>
+      </label>
+      <input name="NotificationUrls" type="text" />
+      
       <input type="submit" value="Save" />
     </form>
   </article>

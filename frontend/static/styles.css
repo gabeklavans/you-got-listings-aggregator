@@ -37,12 +37,10 @@ input:invalid {
 }
 
 form {
-  display: grid;
-  width: fit-content;
-  grid-template-columns: repeat(2, 1fr);
-  justify-items: start;
+  display: flex;
+  flex-direction: column;
 }
 
 form>* {
-  margin: 10px 0 0 10px;
+  margin: 10px 10px 0 10px;
 }
