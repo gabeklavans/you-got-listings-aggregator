@@ -1,7 +1,4 @@
-const BrokerKeys = [
-  "BrokerNames",
-  "BrokerUrls",
-]
+const brokers = [];
 
 const FilterKeys = [
   "BedsMin",
@@ -32,27 +29,61 @@ function minMaxBoundsCheck(minElement, maxElement) {
   }
 }
 
-function matchingCommaCheck(nameElement, urlElement) {
-  const elements = [nameElement, urlElement]
-  for (const element of elements) {
-    element.addEventListener("input", _ => {
-      if (!nameElement.value && !urlElement.value) {
-        return;
-      } else if ((!nameElement.value || !urlElement.value) ||
-        (nameElement.value.split(",").length !== urlElement.value.split(",").length)) {
-        elements.forEach(e => e.setCustomValidity("Broker settings must both have the same number of commas."));
-      } else {
-        elements.forEach(e => e.setCustomValidity(""));
-      }
-    })
-  }
-}
-
 minMaxBoundsCheck(document.getElementsByName("BedsMin")[0], document.getElementsByName("BedsMax")[0]);
 minMaxBoundsCheck(document.getElementsByName("BathsMin")[0], document.getElementsByName("BathsMax")[0]);
 minMaxBoundsCheck(document.getElementsByName("RentMin")[0], document.getElementsByName("RentMax")[0]);
 minMaxBoundsCheck(document.getElementsByName("DateMin")[0], document.getElementsByName("DateMax")[0]);
-matchingCommaCheck(document.getElementsByName("BrokerNames")[0], document.getElementsByName("BrokerUrls")[0]);
+
+function displayBrokers() {
+  const brokersListDiv = document.getElementById("brokers-list");
+
+  // clear all current list items
+  while (brokersListDiv.lastChild) {
+    brokersListDiv.removeChild(brokersListDiv.lastChild);
+  }
+
+  for (let idx = 0; idx < brokers.length; idx++) {
+    const broker = brokers[idx];
+
+    $("#brokers-list").append(`
+      <div id="broker-item-${idx}" class="broker-item">
+        <button type="button" onclick="handleRemoveBroker(this)">Remove</button>
+        <p>${broker.name}: ${broker.url}</p>
+      </div>
+    `);
+  }
+}
+
+function handleAddBroker() {
+  const nameElement = document.getElementById("broker-name");
+  const urlElement = document.getElementById("broker-url");
+  const name = nameElement.value
+  const url = urlElement.value
+
+  if (!name || !url) {
+    return;
+  }
+
+  brokers.push({
+    name,
+    url,
+  });
+
+  console.debug("cur brokers:");
+  console.debug(brokers);
+
+  nameElement.value = "";
+  urlElement.value = "";
+
+  displayBrokers();
+}
+
+function handleRemoveBroker(removeButtonElement) {
+  const brokerIdx = parseInt(removeButtonElement.parentElement.id.split("-")[2]);
+  brokers.splice(brokerIdx, 1);
+
+  displayBrokers();
+}
 
 settingsForm = document.forms["settings"];
 settingsForm.addEventListener(
@@ -64,9 +95,6 @@ settingsForm.addEventListener(
       document.querySelector("button[value=Save]"),
     );
 
-    let brokerNames = []
-    let brokerUrls = []
-    const brokers = []
     const filters = []
     let notifications = []
     for (const [key, value] of formData) {
@@ -75,14 +103,7 @@ settingsForm.addEventListener(
       }
       console.log(key)
 
-      if (BrokerKeys.includes(key)) {
-        // store the broker info in separate lists due to comma-parsing
-        if (key == "BrokerNames") {
-          brokerNames = value.split(",")
-        } else if (key == "BrokerUrls") {
-          brokerUrls = value.split(",")
-        }
-      } else if (FilterKeys.includes(key)) {
+      if (FilterKeys.includes(key)) {
         filters.push({
           name: key,
           value: value,
@@ -97,13 +118,6 @@ settingsForm.addEventListener(
       }
     }
 
-    // build the brokers list using the keys and urls parsed from before
-    for (let idx = 0; idx < brokerNames.length; idx++) {
-      brokers.push({
-        name: brokerNames[idx],
-        url: brokerUrls[idx]
-      })
-    }
     console.debug("sending brokers");
     console.debug(brokers)
     await fetch(`${window.location.origin}/v1/brokers`, {

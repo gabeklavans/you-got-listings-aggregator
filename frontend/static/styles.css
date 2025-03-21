@@ -2,16 +2,13 @@
   margin: 0;
   padding: 0;
   box-sizing: inherit;
+  word-break: break-all;
 }
 
 body {
-  padding: 2%;
+  padding: 10px;
   background-color: rgb(216, 216, 246);
-}
-
-#listings {
-  display: flex;
-  flex-direction: column;
+  font-size: larger;
 }
 
 .address {
@@ -37,8 +34,39 @@ input:invalid {
 }
 
 form {
+  display: grid;
+  max-width: 30em;
+}
+
+input[type=number] {
+  max-width: 5em;
+}
+
+input[type=date] {
+  max-width: 10em;
+}
+
+#brokers-group {
+  display: grid;
+}
+
+.broker-item {
   display: flex;
-  flex-direction: column;
+}
+
+.broker-item+.broker-item {
+  margin-top: 6px;
+}
+
+.broker-item>button {
+  min-width: fit-content;
+  margin-right: 6px;
+}
+
+.add-button {
+  width: fit-content;
+  padding-left: 1em;
+  padding-right: 1em;
 }
 
 form>* {
