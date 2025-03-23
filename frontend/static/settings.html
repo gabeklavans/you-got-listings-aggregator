@@ -16,16 +16,16 @@
   <form id="settings" name="settings">
     <input type="submit" value="Save" />
 
-    <div id="brokers-group">
+    <div class="list-group" id="brokers-group">
       <h4>Brokers:</h4>
       <div id="brokers-list">
       </div>
       <label><small>Name:</small></label>
-      <input type="text" id="broker-name" />
+      <input class="broker-input" type="text" id="broker-name" />
       <label><small>URL:</small></label>
-      <input type="text" id="broker-url" />
+      <input class="broker-input" type="text" id="broker-url" />
     </div>
-    <button type="button" class="add-button" onclick="handleAddBroker()">Add Broker Info</button>
+    <button type="button" class="add-button" onclick="handleAddListItem(LIST_TYPE.BROKER)">Add Broker Info</button>
     <small><strong>warning!!!</strong> brokers are not saved until you click the "Save" button on the top/bottom of the
       page!!!</small>
 
@@ -71,30 +71,43 @@
 
     <hr>
 
-    <label>
-      <p>Excluded Area Words:</p>
-      <p><small>comma-separated</small></p>
-      <p>
-        <small>example: <code>brighton,mission hill,watertown</code></small>
-      </p>
-    </label>
-    <input name="ExcludedAreas" type="text" />
+    <div class="list-group" id="excludedareas-group">
+      <h4>Excluded Areas:</h4>
+      <div id="excludedareas-list">
+      </div>
+      <label><small>Area:</small></label>
+      <input class="excludedarea-input" type="text" id="excludedarea" />
+    </div>
+    <button type="button" class="add-button" onclick="handleAddListItem(LIST_TYPE.EXCLUDED_AREA)">
+      Add Area
+    </button>
+    <p>
+      <small>these are usually town names, e.g. <code>boston</code> or <code>brighton</code></small>
+    </p>
+    <small><strong>warning!!!</strong> areas are not saved until you click the "Save" button on the top/bottom of the
+      page!!!</small>
 
     <hr>
 
-    <label>
-      <p>Notification URLs:</p>
-      <p><small>comma-separated</small></p>
+    <div class="list-group" id="notifications-group">
+      <h4>Notifications:</h4>
       <p>
-        <small>example: <code>discord://webhook_id/webhook_token,tgram://bottoken/ChatID</code></small>
-      </p>
-      <p>
-        <small>see <a target="_blank"
+        <small>check the <a
             href="https://github.com/caronc/apprise?tab=readme-ov-file#productivity-based-notifications">apprise
-            docs</a> for examples</small>
+            docs</a>
+          for the syntax on how to format the URIs</small>
       </p>
-    </label>
-    <input name="NotificationUrls" type="text" />
+      <div id="notifications-list">
+      </div>
+      <label><small>Notification URI:</small></label>
+      <input class="notification-input" type="text" id="notification" />
+    </div>
+    <button type="button" class="add-button" onclick="handleAddListItem(LIST_TYPE.NOTIFICATION)">
+      Add Notification
+    </button>
+    <small><strong>warning!!!</strong> notifications are not saved until you click the "Save" button on the top/bottom
+      of the
+      page!!!</small>
 
     <input type="submit" value="Save" />
   </form>

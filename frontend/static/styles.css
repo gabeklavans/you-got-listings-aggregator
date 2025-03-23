@@ -2,6 +2,9 @@
   margin: 0;
   padding: 0;
   box-sizing: inherit;
+}
+
+code {
   word-break: break-all;
 }
 
@@ -46,19 +49,19 @@ input[type=date] {
   max-width: 10em;
 }
 
-#brokers-group {
+.list-group {
   display: grid;
 }
 
-.broker-item {
+.list-item {
   display: flex;
 }
 
-.broker-item+.broker-item {
+.list-item+.list-item {
   margin-top: 6px;
 }
 
-.broker-item>button {
+.list-item>button {
   min-width: fit-content;
   margin-right: 6px;
 }

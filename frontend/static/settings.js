@@ -1,4 +1,12 @@
-const brokers = [];
+const LIST_TYPE = {
+  BROKER: "broker",
+  EXCLUDED_AREA: "excludedarea",
+  NOTIFICATION: "notification",
+};
+
+let brokers = [];
+const excludedAreas = [];
+let notifications = [];
 
 const FilterKeys = [
   "BedsMin",
@@ -10,10 +18,6 @@ const FilterKeys = [
   "DateMin",
   "DateMax",
   "ExcludedAreas",
-]
-
-const NotificationKeys = [
-  "NotificationUrls"
 ]
 
 function minMaxBoundsCheck(minElement, maxElement) {
@@ -34,55 +38,65 @@ minMaxBoundsCheck(document.getElementsByName("BathsMin")[0], document.getElement
 minMaxBoundsCheck(document.getElementsByName("RentMin")[0], document.getElementsByName("RentMax")[0]);
 minMaxBoundsCheck(document.getElementsByName("DateMin")[0], document.getElementsByName("DateMax")[0]);
 
-function displayBrokers() {
-  const brokersListDiv = document.getElementById("brokers-list");
+function getList(listType) {
+  switch (listType) {
+    case LIST_TYPE.BROKER:
+      return brokers;
+    case LIST_TYPE.EXCLUDED_AREA:
+      return excludedAreas;
+    case LIST_TYPE.NOTIFICATION:
+      return notifications;
+  }
+}
+
+function displayList(listType) {
+  const list = getList(listType);
+
+  const listDiv = $(`#${listType}s-list`);
 
   // clear all current list items
-  while (brokersListDiv.lastChild) {
-    brokersListDiv.removeChild(brokersListDiv.lastChild);
-  }
+  listDiv.children().remove()
 
-  for (let idx = 0; idx < brokers.length; idx++) {
-    const broker = brokers[idx];
+  for (let idx = 0; idx < list.length; idx++) {
+    const listItem = list[idx];
 
-    $("#brokers-list").append(`
-      <div id="broker-item-${idx}" class="broker-item">
-        <button type="button" onclick="handleRemoveBroker(this)">Remove</button>
-        <p>${broker.name}: ${broker.url}</p>
+    listDiv.append(`
+      <div id="${listType}-item-${idx}" class="list-item">
+        <button type="button" onclick="handleRemoveListItem(this)">Remove</button>
+        <p>${listItem.join(": ")}</p>
       </div>
     `);
   }
 }
 
-function handleAddBroker() {
-  const nameElement = document.getElementById("broker-name");
-  const urlElement = document.getElementById("broker-url");
-  const name = nameElement.value
-  const url = urlElement.value
+function handleAddListItem(listType) {
+  const list = getList(listType);
+  const elements = Array.from($(`.${listType}-input`));
 
-  if (!name || !url) {
+  if (elements.some(element => !element.value)) {
     return;
   }
 
-  brokers.push({
-    name,
-    url,
-  });
+  list.push(elements.map(element => element.value));
 
-  console.debug("cur brokers:");
-  console.debug(brokers);
+  console.debug(`cur ${listType}s:`);
+  console.debug(list);
 
-  nameElement.value = "";
-  urlElement.value = "";
+  for (const element of elements) {
+    element.value = "";
+  }
 
-  displayBrokers();
+  displayList(listType);
 }
 
-function handleRemoveBroker(removeButtonElement) {
+function handleRemoveListItem(removeButtonElement) {
+  const listType = removeButtonElement.parentElement.id.split("-")[0]
   const brokerIdx = parseInt(removeButtonElement.parentElement.id.split("-")[2]);
-  brokers.splice(brokerIdx, 1);
 
-  displayBrokers();
+  let list = getList(listType);
+  list.splice(brokerIdx, 1);
+
+  displayList(listType);
 }
 
 settingsForm = document.forms["settings"];
@@ -95,51 +109,83 @@ settingsForm.addEventListener(
       document.querySelector("button[value=Save]"),
     );
 
+    let hadReqErr = false;
+
     const filters = []
-    let notifications = []
+    // NOTE: form data should only contain Filter values
+    // the rest of the values are handled separately
     for (const [key, value] of formData) {
       if (!value) {
         continue;
       }
-      console.log(key)
 
-      if (FilterKeys.includes(key)) {
-        filters.push({
-          name: key,
-          value: value,
-        });
-      } else if (NotificationKeys.includes(key)) {
-        // split the notification URIs by comma into the proper JSON object structure
-        notifications = value.split(",").map((notifUri) => {
-          return {
-            url: notifUri
-          };
-        });
-      }
+      filters.push({
+        name: key,
+        value: value,
+      });
     }
 
+    // transform into proper JSON
+    brokers = brokers.map(broker => {
+      return {
+        name: broker[0],
+        url: broker[1],
+      }
+    });
     console.debug("sending brokers");
     console.debug(brokers)
-    await fetch(`${window.location.origin}/v1/brokers`, {
-      method: "PATCH",
-      body: JSON.stringify(brokers)
-    });
+    try {
+      await fetch(`${window.location.origin}/v1/brokers`, {
+        method: "PATCH",
+        body: JSON.stringify(brokers)
+      });
+    } catch (error) {
+      alert("Something went wrong saving the broker settings...");
+      hadReqErr = true;
+    }
 
+    // massage excluded areas into the filters first
+    if (excludedAreas.length > 0) {
+      filters.push({
+        name: "ExcludedAreas",
+        value: excludedAreas.flat().join(","),
+      });
+    }
     console.debug("sending filters");
     console.debug(filters)
-    await fetch(`${window.location.origin}/v1/filters`, {
-      method: "PATCH",
-      body: JSON.stringify(filters)
-    });
+    try {
+      await fetch(`${window.location.origin}/v1/filters`, {
+        method: "PATCH",
+        body: JSON.stringify(filters)
+      });
+    } catch (error) {
+      alert("Something went wrong saving the filter settings...");
+      hadReqErr = true;
+    }
 
+    // transform into proper JSON
+    notifications = notifications.map(notif => {
+      return {
+        url: notif[0]
+      };
+    });
     console.debug("sending notifications");
     console.debug(notifications)
-    await fetch(`${window.location.origin}/v1/notifications`, {
-      method: "PATCH",
-      body: JSON.stringify(notifications)
-    });
+    try {
+      await fetch(`${window.location.origin}/v1/notifications`, {
+        method: "PATCH",
+        body: JSON.stringify(notifications)
+      });
+    } catch (error) {
+      alert("Something went wrong saving the notification settings...");
+      hadReqErr = true;
+    }
 
-    alert(`I guess I'll filter on those.... not because I want to or anything...... >.<'`);
+    if (hadReqErr) {
+      return;
+    }
+
+    alert(`I guess I'll save those settings.... not because I want to or anything...... >.<'`);
 
     document.location.assign(document.location.origin);
   },
