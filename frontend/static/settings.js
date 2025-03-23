@@ -8,18 +8,6 @@ let brokers = [];
 const excludedAreas = [];
 let notifications = [];
 
-const FilterKeys = [
-  "BedsMin",
-  "BedsMax",
-  "BathsMin",
-  "BathsMax",
-  "RentMin",
-  "RentMax",
-  "DateMin",
-  "DateMax",
-  "ExcludedAreas",
-]
-
 function minMaxBoundsCheck(minElement, maxElement) {
   const elements = [minElement, maxElement];
   for (const element of elements) {
