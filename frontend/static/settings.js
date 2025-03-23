@@ -38,6 +38,53 @@ minMaxBoundsCheck(document.getElementsByName("BathsMin")[0], document.getElement
 minMaxBoundsCheck(document.getElementsByName("RentMin")[0], document.getElementsByName("RentMax")[0]);
 minMaxBoundsCheck(document.getElementsByName("DateMin")[0], document.getElementsByName("DateMax")[0]);
 
+async function populateCurrentSettings() {
+  // fill in the broker and notifications buffer
+  let response = await fetch(`${window.location.origin}/v1/brokers`, {
+    method: "GET",
+  });
+  if (!response.ok) {
+    throw new Error(`Broker fetch status :${response.status}`)
+  }
+  const brokersJson = await response.json();
+  if (brokersJson) {
+    brokers = brokersJson.map(item => Object.values(item));
+  } else {
+    brokers = [];
+  }
+  displayList(LIST_TYPE.BROKER);
+
+  response = await fetch(`${window.location.origin}/v1/notifications`, {
+    method: "GET",
+  });
+  if (!response.ok) {
+    throw new Error(`Notfication fetch status :${response.status}`)
+  }
+  const notificationsJson = await response.json();
+  if (notificationsJson) {
+    notifications = notificationsJson.map(item => Object.values(item));
+  } else {
+    notifications = [];
+  }
+  displayList(LIST_TYPE.NOTIFICATION);
+
+  // filters are handled differently
+  response = await fetch(`${window.location.origin}/v1/filters`, {
+    method: "GET",
+  });
+  if (!response.ok) {
+    throw new Error(`Filter fetch status :${response.status}`)
+  }
+  const filters = await response.json();
+  for (const filter of filters) {
+    const inputElement = $(`[name="${filter.name}"]`)[0];
+    if (!inputElement) {
+      continue;
+    }
+    inputElement.value = `${filter.value}`;
+  }
+}
+
 function getList(listType) {
   switch (listType) {
     case LIST_TYPE.BROKER:
@@ -191,3 +238,5 @@ settingsForm.addEventListener(
   },
   false,
 );
+
+$(window).ready(populateCurrentSettings);
