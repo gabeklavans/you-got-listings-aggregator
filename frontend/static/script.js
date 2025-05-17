@@ -2,17 +2,16 @@ let propertiesObject = {};
 let propertiesDiv = document.getElementsByClassName("properties");
 
 const dateStringOptions = {
-  weekday: "long",
   year: "numeric",
   month: "long",
   day: "numeric",
 }
 
 // see index.tmpl for where these consts come from
-fetch(`${window.location.href}v1/brokers`)
+fetch(`${window.location.origin}/v1/brokers`)
   .then((response) => response.json())
   .then((brokers) => {
-    fetch(`${window.location.href}v1/listings`)
+    fetch(`${window.location.origin}/v1/listings`)
       .then((response) => response.json())
       .then((propertiesObject) => {
         // console.log(propertiesObject);
@@ -36,12 +35,16 @@ fetch(`${window.location.href}v1/brokers`)
           }
 
           dateObj = new Date(listingInfo.timestamp / 1000000)
-          const p = $(".properties").append(
-            `<p id="listing${i}" class="listing"> <span class="timestamp">(${dateObj.toLocaleDateString("en-US", dateStringOptions)} ${dateObj.toLocaleTimeString("en-US")})\u00A0 - \u00A0</span> <span class="price">$${listingInfo.price} </span> \u00A0\u00A0 <span class="beds-baths"> ${listingInfo.beds}Bd / ${listingInfo.baths}bth </span>  
-            \u00A0\u00A0\u00A0 <span class="address">${property[0]}:</span> \u00A0\u00A0\u00A0 <span class="name-tags">${nameTags} </span> </p>
-            
-            <input type="text" id="listing-notes" name="notes">`
-          );
+          $(".properties").append(`
+<p id="listing${i}" class="listing">
+  <span class="timestamp">scraped: ${dateObj.toLocaleDateString("en-US", dateStringOptions)} ${dateObj.toLocaleTimeString("en-US")}</span> \u00A0
+  <span class="price">$${listingInfo.price} </span> \u00A0
+  <span class="beds-baths"> ${listingInfo.beds}Bd / ${listingInfo.baths}bth </span> \u00A0
+  <span class="address">${property[0]}:</span> \u00A0
+  <span class="name-tags">${nameTags} </span>
+</p>
+<hr />
+          `);
           i++;
         });
       });

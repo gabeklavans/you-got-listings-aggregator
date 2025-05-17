@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title></title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+</head>
+<header>
+  <h1 id="main-header">Settings</h1>
+</header>
+<article>
+  <form id="settings" name="settings">
+    <input type="submit" value="Save" />
+
+    <div class="list-group" id="brokers-group">
+      <h4>Brokers:</h4>
+      <div id="brokers-list">
+      </div>
+      <label><small>Name:</small></label>
+      <input class="broker-input" type="text" id="broker-name" />
+      <label><small>URL:</small></label>
+      <input class="broker-input" type="text" id="broker-url" />
+    </div>
+    <button type="button" class="add-button" onclick="handleAddListItem(LIST_TYPE.BROKER)">Add Broker Info</button>
+    <small><strong>warning!!!</strong> brokers are not saved until you click the "Save" button on the top/bottom of the
+      page!!!</small>
+
+    <hr>
+
+    <label>Beds Minimum: </label>
+    <input name="BedsMin" class="Beds" type="number" min="0" />
+
+    <hr>
+
+    <label>Beds Maximum: </label>
+    <input name="BedsMax" class="Beds" type="number" min="0" />
+
+    <hr>
+
+    <label>Baths Minimum: </label>
+    <input name="BathsMin" class="Baths" type="number" min="0" step="0.5" />
+
+    <hr>
+
+    <label>Baths Maximum: </label>
+    <input name="BathsMax" class="Baths" type="number" min="0" step="0.5" />
+
+    <hr>
+
+    <label>Rent Minimum: </label>
+    <input name="RentMin" class="Rent" type="number" min="0" step="100" />
+
+    <hr>
+
+    <label>Rent Maximum: </label>
+    <input name="RentMax" class="Rent" type="number" min="0" step="100" />
+
+    <hr>
+
+    <label>Earliest Availability: </label>
+    <input name="DateMin" class="Date" type="date" />
+
+    <hr>
+
+    <label>Latest Availability: </label>
+    <input name="DateMax" class="Date" type="date" />
+
+    <hr>
+
+    <div class="list-group" id="excludedareas-group">
+      <h4>Excluded Areas:</h4>
+      <div id="excludedareas-list">
+      </div>
+      <label><small>Area:</small></label>
+      <input class="excludedarea-input" type="text" id="excludedarea" />
+    </div>
+    <button type="button" class="add-button" onclick="handleAddListItem(LIST_TYPE.EXCLUDED_AREA)">
+      Add Area
+    </button>
+    <p>
+      <small>these are usually town names, e.g. <code>boston</code> or <code>brighton</code></small>
+    </p>
+    <small><strong>warning!!!</strong> areas are not saved until you click the "Save" button on the top/bottom of the
+      page!!!</small>
+
+    <hr>
+
+    <div class="list-group" id="notifications-group">
+      <h4>Notifications:</h4>
+      <p>
+        <small>check the <a
+            href="https://github.com/caronc/apprise?tab=readme-ov-file#productivity-based-notifications">apprise
+            docs</a>
+          for the syntax on how to format the URIs</small>
+      </p>
+      <div id="notifications-list">
+      </div>
+      <label><small>Notification URI:</small></label>
+      <input class="notification-input" type="text" id="notification" />
+    </div>
+    <button type="button" class="add-button" onclick="handleAddListItem(LIST_TYPE.NOTIFICATION)">
+      Add Notification
+    </button>
+    <small><strong>warning!!!</strong> notifications are not saved until you click the "Save" button on the top/bottom
+      of the
+      page!!!</small>
+
+    <input type="submit" value="Save" />
+  </form>
+</article>
+
+<script src="/static/settings.js"></script>
+
+</html>

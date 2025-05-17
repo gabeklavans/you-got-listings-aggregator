@@ -4,21 +4,14 @@
   box-sizing: inherit;
 }
 
-#listings-area {
-  padding: 2%;
+code {
+  word-break: break-all;
+}
+
+body {
+  padding: 10px;
   background-color: rgb(216, 216, 246);
-}
-
-#main-header {
-  /* text-align: center; */
-}
-
-#listings {
-  display: flex;
-  flex-direction: column;
-}
-
-.price {
+  font-size: larger;
 }
 
 .address {
@@ -26,10 +19,59 @@
 }
 
 .listing {
-  margin-top: 1%;
-  margin-bottom: 1%;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.timestamp {
+  opacity: 50%;
+  font-size: small;
 }
 
 input {
   padding: 2px;
+}
+
+input:invalid {
+  border: 2px dashed red;
+}
+
+form {
+  display: grid;
+  max-width: 30em;
+}
+
+input[type=number] {
+  max-width: 5em;
+}
+
+input[type=date] {
+  max-width: 10em;
+}
+
+.list-group {
+  display: grid;
+}
+
+.list-item {
+  display: flex;
+}
+
+.list-item+.list-item {
+  margin-top: 6px;
+}
+
+.list-item>button {
+  min-width: fit-content;
+  margin-right: 6px;
+}
+
+.add-button {
+  width: fit-content;
+  padding-left: 1em;
+  padding-right: 1em;
+}
+
+form>* {
+  margin: 10px 10px 0 10px;
 }
