@@ -1,11 +1,11 @@
 const LIST_TYPE = {
   BROKER: "broker",
-  EXCLUDED_AREA: "excludedarea",
+  EXCLUDED_AREA: "excludearea",
   NOTIFICATION: "notification",
 };
 
 let brokers = [];
-const excludedAreas = [];
+let excludedAreas = [];
 let notifications = [];
 
 function minMaxBoundsCheck(minElement, maxElement) {
@@ -65,12 +65,17 @@ async function populateCurrentSettings() {
   }
   const filters = await response.json();
   for (const filter of filters) {
-    const inputElement = $(`[name="${filter.name}"]`)[0];
-    if (!inputElement) {
-      continue;
+    if (filter.name === "ExcludeAreas") {
+      excludedAreas = filter.value.split(",").map(area => [area]) // this is to please the generic displayList function
+    } else {
+      const inputElement = $(`[name="${filter.name}"]`)[0];
+      if (!inputElement) {
+        continue;
+      }
+      inputElement.value = `${filter.value}`;
     }
-    inputElement.value = `${filter.value}`;
   }
+  displayList(LIST_TYPE.EXCLUDED_AREA)
 }
 
 function getList(listType) {
@@ -182,7 +187,7 @@ settingsForm.addEventListener(
     // massage excluded areas into the filters first
     if (excludedAreas.length > 0) {
       filters.push({
-        name: "ExcludedAreas",
+        name: "ExcludeAreas",
         value: excludedAreas.flat().join(","),
       });
     }
