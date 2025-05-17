@@ -11,20 +11,35 @@ let notifications = [];
 function minMaxBoundsCheck(minElement, maxElement) {
   const elements = [minElement, maxElement];
   for (const element of elements) {
-    element.addEventListener("input", _ => {
-      if (parseInt(minElement.value.replaceAll("-", "")) > parseInt(maxElement.value.replaceAll("-", ""))) {
-        element.setCustomValidity("Maximum cannot be greater than minimum.")
+    element.addEventListener("input", (_) => {
+      if (
+        parseInt(minElement.value.replaceAll("-", "")) >
+        parseInt(maxElement.value.replaceAll("-", ""))
+      ) {
+        element.setCustomValidity("Maximum cannot be greater than minimum.");
       } else {
-        element.setCustomValidity("")
+        element.setCustomValidity("");
       }
     });
   }
 }
 
-minMaxBoundsCheck(document.getElementsByName("BedsMin")[0], document.getElementsByName("BedsMax")[0]);
-minMaxBoundsCheck(document.getElementsByName("BathsMin")[0], document.getElementsByName("BathsMax")[0]);
-minMaxBoundsCheck(document.getElementsByName("RentMin")[0], document.getElementsByName("RentMax")[0]);
-minMaxBoundsCheck(document.getElementsByName("DateMin")[0], document.getElementsByName("DateMax")[0]);
+minMaxBoundsCheck(
+  document.getElementsByName("BedsMin")[0],
+  document.getElementsByName("BedsMax")[0],
+);
+minMaxBoundsCheck(
+  document.getElementsByName("BathsMin")[0],
+  document.getElementsByName("BathsMax")[0],
+);
+minMaxBoundsCheck(
+  document.getElementsByName("RentMin")[0],
+  document.getElementsByName("RentMax")[0],
+);
+minMaxBoundsCheck(
+  document.getElementsByName("DateMin")[0],
+  document.getElementsByName("DateMax")[0],
+);
 
 async function populateCurrentSettings() {
   // fill in the broker and notifications buffer
@@ -32,11 +47,11 @@ async function populateCurrentSettings() {
     method: "GET",
   });
   if (!response.ok) {
-    throw new Error(`Broker fetch status :${response.status}`)
+    throw new Error(`Broker fetch status :${response.status}`);
   }
   const brokersJson = await response.json();
   if (brokersJson) {
-    brokers = brokersJson.map(item => Object.values(item));
+    brokers = brokersJson.map((item) => Object.values(item));
   } else {
     brokers = [];
   }
@@ -46,11 +61,11 @@ async function populateCurrentSettings() {
     method: "GET",
   });
   if (!response.ok) {
-    throw new Error(`Notfication fetch status :${response.status}`)
+    throw new Error(`Notfication fetch status :${response.status}`);
   }
   const notificationsJson = await response.json();
   if (notificationsJson) {
-    notifications = notificationsJson.map(item => Object.values(item));
+    notifications = notificationsJson.map((item) => Object.values(item));
   } else {
     notifications = [];
   }
@@ -61,12 +76,12 @@ async function populateCurrentSettings() {
     method: "GET",
   });
   if (!response.ok) {
-    throw new Error(`Filter fetch status :${response.status}`)
+    throw new Error(`Filter fetch status :${response.status}`);
   }
   const filters = await response.json();
   for (const filter of filters) {
     if (filter.name === "ExcludeAreas") {
-      excludeAreas = filter.value.split(",").map(area => [area]) // this is to please the generic displayList function
+      excludeAreas = filter.value.split(",").map((area) => [area]); // this is to please the generic displayList function
     } else {
       const inputElement = $(`[name="${filter.name}"]`)[0];
       if (!inputElement) {
@@ -75,7 +90,7 @@ async function populateCurrentSettings() {
       inputElement.value = `${filter.value}`;
     }
   }
-  displayList(LIST_TYPE.EXCLUDE_AREA)
+  displayList(LIST_TYPE.EXCLUDE_AREA);
 }
 
 function getList(listType) {
@@ -95,7 +110,7 @@ function displayList(listType) {
   const listDiv = $(`#${listType}s-list`);
 
   // clear all current list items
-  listDiv.children().remove()
+  listDiv.children().remove();
 
   for (let idx = 0; idx < list.length; idx++) {
     const listItem = list[idx];
@@ -113,11 +128,11 @@ function handleAddListItem(listType) {
   const list = getList(listType);
   const elements = Array.from($(`.${listType}-input`));
 
-  if (elements.some(element => !element.value)) {
+  if (elements.some((element) => !element.value)) {
     return;
   }
 
-  list.push(elements.map(element => element.value));
+  list.push(elements.map((element) => element.value));
 
   console.debug(`cur ${listType}s:`);
   console.debug(list);
@@ -130,8 +145,10 @@ function handleAddListItem(listType) {
 }
 
 function handleRemoveListItem(removeButtonElement) {
-  const listType = removeButtonElement.parentElement.id.split("-")[0]
-  const brokerIdx = parseInt(removeButtonElement.parentElement.id.split("-")[2]);
+  const listType = removeButtonElement.parentElement.id.split("-")[0];
+  const brokerIdx = parseInt(
+    removeButtonElement.parentElement.id.split("-")[2],
+  );
 
   let list = getList(listType);
   list.splice(brokerIdx, 1);
@@ -151,7 +168,7 @@ settingsForm.addEventListener(
 
     let hadReqErr = false;
 
-    const filters = []
+    const filters = [];
     // NOTE: form data should only contain Filter values
     // the rest of the values are handled separately
     for (const [key, value] of formData) {
@@ -166,18 +183,18 @@ settingsForm.addEventListener(
     }
 
     // transform into proper JSON
-    brokers = brokers.map(broker => {
+    brokers = brokers.map((broker) => {
       return {
         name: broker[0],
         url: broker[1],
-      }
+      };
     });
     console.debug("sending brokers");
-    console.debug(brokers)
+    console.debug(brokers);
     try {
       await fetch(`${window.location.origin}/v1/brokers`, {
         method: "PATCH",
-        body: JSON.stringify(brokers)
+        body: JSON.stringify(brokers),
       });
     } catch (error) {
       alert("Something went wrong saving the broker settings...");
@@ -192,11 +209,11 @@ settingsForm.addEventListener(
       });
     }
     console.debug("sending filters");
-    console.debug(filters)
+    console.debug(filters);
     try {
       await fetch(`${window.location.origin}/v1/filters`, {
         method: "PATCH",
-        body: JSON.stringify(filters)
+        body: JSON.stringify(filters),
       });
     } catch (error) {
       alert("Something went wrong saving the filter settings...");
@@ -204,17 +221,17 @@ settingsForm.addEventListener(
     }
 
     // transform into proper JSON
-    notifications = notifications.map(notif => {
+    notifications = notifications.map((notif) => {
       return {
-        url: notif[0]
+        url: notif[0],
       };
     });
     console.debug("sending notifications");
-    console.debug(notifications)
+    console.debug(notifications);
     try {
       await fetch(`${window.location.origin}/v1/notifications`, {
         method: "PATCH",
-        body: JSON.stringify(notifications)
+        body: JSON.stringify(notifications),
       });
     } catch (error) {
       alert("Something went wrong saving the notification settings...");
@@ -225,7 +242,9 @@ settingsForm.addEventListener(
       return;
     }
 
-    alert(`I guess I'll save those settings.... not because I want to or anything...... >.<'`);
+    alert(
+      `I guess I'll save those settings.... not because I want to or anything...... >.<'`,
+    );
 
     document.location.assign(document.location.origin);
   },
